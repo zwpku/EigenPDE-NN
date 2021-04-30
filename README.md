@@ -30,7 +30,7 @@ These two packages are **not** needed if one only wants to solve the problem by 
 #### 2. View and modify the parameters in the configure file [params.cfg](working_dir/params.cfg).
    Set num_processor = 1 for standard training.  
 
-#### 3. Choose a task (see the scripts under directory [utils](utils)) by setting the value of task_id in [main.py](working_dir/main.py), and run the script 
+#### 3. Choose a task (see the scripts under directory [utils](utils)) by setting the value of task_id in [main.py](working_dir/main.py), and run it.
 
 ```
    ./main.py
