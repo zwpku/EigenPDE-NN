@@ -12,7 +12,7 @@ sys.path.append('../utils/')
 import pytorch_eigen_solver 
 import MyComm 
 import read_parameters 
-import data_processor 
+import training_data
 
 # Create directory ./data, if not exist yet.
 if not os.path.exists('./data'):
@@ -32,7 +32,7 @@ script_name_list = ["../utils/eval_nn_on_grid.py", "../utils/eval_potential_on_g
 #   4:   Prepare training data 
 #          (load MD data when namd_data_flag=True, or generate sample data when it is False)
 #   5:   Solve eigenvalue PDE by training neural networks
-task_id = 1
+task_id = 5
 
 if task_id <= 3 :
     # Run one of the scripts above
@@ -41,8 +41,7 @@ if task_id <= 3 :
 elif task_id == 4 :
     # Load MD data and save it to txt file
     Param = read_parameters.Param()
-    Comm = MyComm.Comm(Param.distributed_training)
-    data_proc = data_processor.PrepareData(Param) 
+    data_proc = training_data.PrepareData(Param) 
     data_proc.prepare_data()
 elif task_id == 5 :
     # Train neural networks
