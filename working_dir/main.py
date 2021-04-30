@@ -14,6 +14,11 @@ import MyComm
 import read_parameters 
 import namd_loader_dipeptide
 
+# Create directory ./data, if not exist yet.
+if not os.path.exists('./data'):
+    os.makedirs('./data')
+    print ("Directory ./data created.")
+
 # List of possible scripts 
 script_name_list = ["../utils/generate_sample_data.py", "../utils/eval_nn_on_grid.py", "../utils/eval_potential_on_grid.py", "../utils/FVD-1d.py", "../utils/FVD-2d.py -eps_monitor"]
 
@@ -21,7 +26,7 @@ script_name_list = ["../utils/generate_sample_data.py", "../utils/eval_nn_on_gri
 #   0-4: Run one of the scripts in the above list
 #   5:   Load MD data
 #   6:   Solve eigenvalue PDE by training neural networks
-task_id = 1
+task_id = 2
 
 if task_id <= 4 :
     # Run one of the scripts above
