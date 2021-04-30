@@ -1,1 +1,0 @@
-../src/generate_sample_data.py

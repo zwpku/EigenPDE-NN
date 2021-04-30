@@ -11,6 +11,8 @@ from slepc4py import SLEPc
 from pylab import *
 from numpy import linalg as LA
 
+sys.path.append('../src/')
+
 import potentials 
 import read_parameters 
 

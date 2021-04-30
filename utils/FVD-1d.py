@@ -5,6 +5,10 @@
 from pylab import *
 import numpy as np
 from numpy import linalg as LA
+
+import sys
+sys.path.append('../src/')
+
 import potentials 
 import read_parameters
 

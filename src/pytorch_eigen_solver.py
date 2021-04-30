@@ -68,6 +68,7 @@ class eigen_solver():
         torch.manual_seed(seed)
 
         if self.rank == 0 :
+            print ("[Info]  beta = %.4f" % (self.beta))
             print ("[Info]  NN architecture:", self.arch_list)
             print ('\tStages: ', self.stage_list)
             print ('\tBatch size list: ', self.batch_size_list)

@@ -1,1 +1,0 @@
-../src/eval_nn_on_grid.py

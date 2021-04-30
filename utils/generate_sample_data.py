@@ -2,6 +2,9 @@
 
 # Generate trajectory data by Euler-Maruyama scheme
 
+import sys
+sys.path.append('../src/')
+
 import numpy as np
 import math
 import random

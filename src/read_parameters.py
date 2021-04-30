@@ -106,7 +106,6 @@ class Param:
             # 1 kcal/mol = 0.043 eV
             Kb = 8.6173333262145 * 1e-5
             self.namd_beta = 0.043 / (Kb * self.temp_T)
-            print ("T=%.2f, beta = %.4f" % (self.temp_T, self.namd_beta))
 
         # Log file for training 
         self.log_filename = config['default'].get('log_filename')
