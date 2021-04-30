@@ -7,7 +7,6 @@ An Eigenvalue PDE Solver by Neural Networks
 - [MDAnalysis](https://www.mdanalysis.org/) is used in order to load MD data. Not needed if one generates training data using the script: [utils/generate_sample_data.py](utils/generate_sample_data.py). 
 
 - [slepc4py](https://pypi.org/project/slepc4py/) and [petsc4py](https://pypi.org/project/petsc4py/) are used in solving 2D eigenvalue PDE problems using finite volume method. In some examples, the solution given by finite volume method can be used to compare with the solution obtained from training neural networks. 
-
 Not needed if ones only wants to solve the problem by training neural networks.
 
 #### 2. Download the code 
