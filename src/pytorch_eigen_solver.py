@@ -11,9 +11,32 @@ from itertools import combinations_with_replacement
 
 import network_arch 
 
+class Comm():
+  def __init__(self, distributed_training):
+    if distributed_training : 
+        """
+          Currently we use mpi as backend.
+          It requires to install pytorch with mpi (from source code).
+          The backend can be easily changed to others.
+        """
+        try : 
+            import torch.distributed as dist
+            #from torch.multiprocessing import Process
+            dist.init_process_group('mpi')
+            self.dist = dist 
+            self.rank = self.dist.get_rank()
+            self.size = self.dist.get_world_size()
+        except ImportError: 
+            print ("Cann't import parallel libraries! Re-run with distributed_training=Flase") 
+            sys.exit(1)
+    else : # run sequentially 
+        self.dist = None
+        self.rank = 0
+        self.size = 1
+
 class eigen_solver():
 
-    def __init__(self, Param, Comm, seed=3214):
+    def __init__(self, Param, seed=3214):
         # The meanings of parameters are commented in the file: read_parameters.py 
         self.k = Param.k
         self.all_k_eigs = Param.all_k_eigs
@@ -50,20 +73,31 @@ class eigen_solver():
         self.ij_list = list(combinations_with_replacement(range(Param.k), 2))
         self.num_ij_pairs = len(self.ij_list)
 
-        self.distributed_training = Param.distributed_training
-        self.distribute_data = Param.distribute_data
+        if Param.num_processor > 1 :
+            self.distributed_training = True 
+            self.distribute_data = Param.distribute_data
+        else :
+            self.distributed_training = False
+            self.distribute_data = False
 
-        self.dist = Comm.dist
-        self.rank = Comm.rank
-        self.size = Comm.size
+        MyComm = Comm(self.distributed_training)
+
+        self.dist = MyComm.dist
+        self.rank = MyComm.rank
+        self.size = MyComm.size
+
+        seed += self.rank 
 
         # Set the seed of random number generator 
         random.seed(seed)
         np.random.seed(seed)
         torch.manual_seed(seed)
 
+        torch.set_printoptions(precision=20)
+
         if self.rank == 0 :
             print ("[Info]  beta = %.4f" % (self.beta))
+            print ("[Info]  seed = %d" % (seed))
             print ("[Info]  NN architecture:", self.arch_list)
             print ('\tStages: ', self.stage_list)
             print ('\tBatch size list: ', self.batch_size_list)

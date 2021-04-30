@@ -50,8 +50,9 @@ class Param:
         # Use ReLu or Tanh as activation functions
         self.ReLU_flag = config['NeuralNetArch'].getboolean('ReLU_flag')
 
-        # If true, the pytorch with mpi is needed in order to run the code
-        self.distributed_training = config['Training'].getboolean('distributed_training')
+        # If num_processor > 1, the training will be run in parallel. 
+        # In this case, pytorch with mpi is needed. 
+        self.num_processor = config['Training'].getint('num_processor')
 
         # If true, the whole data will be divided on each processor. 
         self.distribute_data = config['Training'].getboolean('distribute_data')
