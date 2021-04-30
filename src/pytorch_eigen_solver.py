@@ -9,12 +9,6 @@ import time
 from numpy import linalg as LA
 from itertools import combinations_with_replacement
 
-try : 
-    import torch.distributed as dist
-    from torch.multiprocessing import Process
-except ImportError: 
-    print ("parallel libraries can not imported!") 
-
 import network_arch 
 
 class eigen_solver():
@@ -59,6 +53,7 @@ class eigen_solver():
         self.distributed_training = Param.distributed_training
         self.distribute_data = Param.distribute_data
 
+        self.dist = Comm.dist
         self.rank = Comm.rank
         self.size = Comm.size
 
@@ -126,11 +121,11 @@ class eigen_solver():
             # Synchronization among processors
             ts = torch.zeros(1)
             if self.rank > 0 :
-               dist.recv(tensor=ts, src=self.rank-1)
+               self.dist.recv(tensor=ts, src=self.rank-1)
             print('\trank=%d, %d sample data loaded' % (self.rank, K), flush=True)
             if self.rank < self.size - 1 :
-               dist.send(tensor=ts, dst=self.rank+1)
-            dist.barrier()
+               self.dist.send(tensor=ts, dst=self.rank+1)
+            self.dist.barrier()
         else :
             print('\trank=%d, %d sample data loaded' % (self.rank, K), flush=True)
 
@@ -163,11 +158,11 @@ class eigen_solver():
     def average_model_parameters(self, average_grad=False):
         if average_grad == True :
             for param in self.model.parameters():
-                dist.all_reduce(param.grad, op=dist.ReduceOp.SUM)
+                self.dist.all_reduce(param.grad, op=self.dist.ReduceOp.SUM)
                 param.grad /= self.size
         else :
             for param in self.model.parameters():
-                dist.all_reduce(param.data, op=dist.ReduceOp.SUM)
+                self.dist.all_reduce(param.data, op=self.dist.ReduceOp.SUM)
                 param.data /= self.size
 
     """
@@ -288,7 +283,7 @@ class eigen_solver():
             cvec = range(self.k)
             if self.sort_eigvals_in_training :
                 if self.distributed_training : 
-                    dist.all_reduce(eig_vals, op=dist.ReduceOp.SUM)
+                    self.dist.all_reduce(eig_vals, op=self.dist.ReduceOp.SUM)
                     eig_vals /= self.size
                 cvec = np.argsort(eig_vals)
                 # Sort the eigenvalues 
@@ -325,20 +320,20 @@ class eigen_solver():
             # Average gradients and other quantities among processors
             self.average_model_parameters(average_grad=True)
 
-            dist.all_reduce(loss, op=dist.ReduceOp.SUM)
+            self.dist.all_reduce(loss, op=self.dist.ReduceOp.SUM)
             loss /= self.size 
 
-            dist.all_reduce(non_penalty_loss, op=dist.ReduceOp.SUM)
+            self.dist.all_reduce(non_penalty_loss, op=self.dist.ReduceOp.SUM)
             non_penalty_loss /= self.size 
 
-            dist.all_reduce(penalty, op=dist.ReduceOp.SUM)
+            self.dist.all_reduce(penalty, op=self.dist.ReduceOp.SUM)
             penalty /= self.size
 
-            dist.all_reduce(eig_vals, op=dist.ReduceOp.SUM)
+            self.dist.all_reduce(eig_vals, op=self.dist.ReduceOp.SUM)
             eig_vals /= self.size
 
             if self.all_k_eigs == False :
-                dist.all_reduce(cvec, op=dist.ReduceOp.SUM)
+                self.dist.all_reduce(cvec, op=self.dist.ReduceOp.SUM)
                 cvec /= self.size
 
         self.optimizer.step()
@@ -541,11 +536,11 @@ class eigen_solver():
             # On each processor, print information of data size 
             ts = torch.zeros(1)
             if self.rank > 0 :
-               dist.recv(tensor=ts, src=self.rank-1)
+               self.dist.recv(tensor=ts, src=self.rank-1)
             print ("On rank %d, data size K=%d,\tRange of weights: [%.3e, %.3e]" % (self.rank, self.K, self.weights.min(), self.weights.max()), flush=True)
             if self.rank < self.size - 1 :
-               dist.send(tensor=ts, dst=self.rank+1)
-            dist.barrier()
+               self.dist.send(tensor=ts, dst=self.rank+1)
+            self.dist.barrier()
         else :
             print ('Range of weights: [%.3e, %.ee]' % (self.weights.min(), self.weights.max()) )
 

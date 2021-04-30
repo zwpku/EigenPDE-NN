@@ -60,6 +60,7 @@ class namd_data_loader() :
         # Show the angle counting data in 2d plot
         h = ax.imshow(angle_counter.T, extent=[-180,180, -180, 180], cmap='jet', origin='lower')
         plt.colorbar(h)
+
         filename = './fig/count_of_angles.eps' 
         plt.savefig(filename)
 
