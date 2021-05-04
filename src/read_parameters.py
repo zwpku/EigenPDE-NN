@@ -103,9 +103,11 @@ class Param:
             self.namd_data_path = config['NAMD'].get('namd_data_path')
 
             # physical quantities 
-            # boltzmann constant (eV/K)
+            # boltzmann constant (unit: eV/K)
+            Kb = 8.6173333262145 * 1e-5 
+            # the unit of the PMF obtained from NAMD is: kcal/mol
             # 1 kcal/mol = 0.043 eV
-            Kb = 8.6173333262145 * 1e-5
+            # At T=300, namd_beta = 1.6633
             self.namd_beta = 0.043 / (Kb * self.temp_T)
 
         # Log file for training 
