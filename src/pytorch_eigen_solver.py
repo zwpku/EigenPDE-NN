@@ -261,6 +261,14 @@ class eigen_solver():
            (3) k 2nd-constraints (i.e. orthogonality and normalization constraints). 
 
       alpha_vec:  two penalty constants used in Steps (2)-(3) above.
+
+
+      Unit of eigenvalues for NAMD applications:
+        length:             angstrom, 10^{-10}m
+        damping cofficient: ps^{-1} = 10^{12} s^{-1}
+        mass:               atomic mass unit 
+        1/beta:             kcal/mol
+
     """
     def update_step(self, bsz, alpha_vec):
 
