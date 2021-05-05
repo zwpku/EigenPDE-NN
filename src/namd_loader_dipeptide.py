@@ -148,7 +148,7 @@ class namd_data_loader() :
         pdb_filename = '%s/%s.psf' % (self.pdb_path, self.pdb_prefix)
         traj_filename = '%s/%s.dcd' % (self.namd_data_path, self.namd_data_filename_prefix)
         u = mda.Universe(pdb_filename, traj_filename)
-        
+
         # Length of trajectory 
         K_total = len(u.trajectory)
         print ("[Info] Data file: %s\n\t%d states in datafile" % (traj_filename, K_total), flush=True)
@@ -183,7 +183,22 @@ class namd_data_loader() :
             # Indices of the 5 atoms (see above) among selected atoms
             angle_col_index = [0, 1, 2, 3, 4]
 
+        # Number of selected atoms
         atom_num = len(selected_atoms.names)
+
+        mass_filename = './data/mass.txt'
+        # Mass of selected atoms
+        if self.which_data_to_use == 'angle': 
+            # We choose artificial mass for angles. Needs to be fixed in future.
+            mass_of_selected_atoms = np.array([1.0, 1.0])
+            np.savetxt(mass_filename, mass_of_selected_atoms, header='%d' % (len(mass_of_selected_atoms)), comments="", fmt="%.10f")
+        else :
+            mass_of_selected_atoms = selected_atoms.masses
+            np.savetxt(mass_filename, np.repeat(mass_of_selected_atoms, 3), header='%d' % (3 * len(mass_of_selected_atoms)), comments="", fmt="%.10f")
+
+        # Save the mass of selected atoms to file
+        print ( '[Info] Mass of atoms saved to file:%s\n' % mass_filename )
+
         print ( '[Info] Loading trajectory data...\n\tNames of %d selected atoms:\n\t %s\n\tNames of angle-related atoms:\n\t %s\n' % (atom_num, selected_atoms.names, selected_atoms.names[angle_col_index]) )
 
         # This is a 3d vector
@@ -208,6 +223,5 @@ class namd_data_loader() :
         else : 
             # Use trajectory data of selected atoms 
             np.savetxt(states_file_name, np.concatenate((traj_data.reshape((-1, atom_num * 3)), weights.reshape((K,1))), axis=1), header='%d' % K, comments="", fmt="%.10f")
+
         print("Sampled data are stored to: %s" % states_file_name)
-
-

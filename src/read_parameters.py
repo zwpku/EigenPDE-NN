@@ -95,6 +95,7 @@ class Param:
 
         if self.namd_data_flag == True : 
             self.temp_T = config['NAMD'].getfloat('temperature')
+            self.damping_coeff = config['NAMD'].getfloat('damping_coeff')
             self.pdb_path = config['NAMD'].get('pdb_path')
             self.pdb_prefix = config['NAMD'].get('pdb_prefix')
             self.which_data_to_use = config['NAMD'].get('which_data_to_use')
@@ -109,6 +110,8 @@ class Param:
             # 1 kcal/mol = 0.043 eV
             # At T=300, namd_beta = 1.6633
             self.namd_beta = 0.043 / (Kb * self.temp_T)
+        else :
+            self.damping_coeff = 1.0
 
         # Log file for training 
         self.log_filename = config['default'].get('log_filename')

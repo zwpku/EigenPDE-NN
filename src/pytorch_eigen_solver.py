@@ -55,7 +55,9 @@ class eigen_solver():
         self.learning_rate_list = Param.learning_rate_list
         self.alpha_1_list = Param.alpha_1_list
         self.alpha_2_list = Param.alpha_2_list
-        self.arch_list = Param.inner_arch_size_list + [1]
+
+        # Sizes of inner Layers (without input/output layers)
+        self.arch_list = Param.inner_arch_size_list 
 
         self.use_Rayleigh_quotient = Param.use_Rayleigh_quotient
         self.ReLU_flag = Param.ReLU_flag
@@ -95,10 +97,15 @@ class eigen_solver():
 
         torch.set_printoptions(precision=20)
 
+        # Compute diagnal matrix based on mass and damping coefficient
+        mass_vec = np.loadtxt('./data/mass.txt', skiprows=1)
+        self.diag_coeff = torch.from_numpy(1.0 / Param.damping_coeff * np.reciprocal(mass_vec))
+
+        print ("Diagonal constants (size=%d):\n" % len(self.diag_coeff), self.diag_coeff)
+
         if self.rank == 0 :
             print ("[Info]  beta = %.4f" % (self.beta))
             print ("[Info]  seed = %d" % (seed))
-            print ("[Info]  NN architecture:", self.arch_list)
             print ('\tStages: ', self.stage_list)
             print ('\tBatch size list: ', self.batch_size_list)
             print ('\tLearning rate list: ', self.learning_rate_list)
@@ -121,6 +128,7 @@ class eigen_solver():
 
     # Load sampled data from text file
     def load_data_from_text_file(self):
+
         # Reads states from file 
         states_file_name = './data/%s.txt' % (self.data_filename_prefix)
         fp = open(states_file_name, 'r')
@@ -275,7 +283,7 @@ class eigen_solver():
                 ij = self.ij_list[idx]
 
                 # Entries of the matrix: weighted averages (scaled by 1/beta) of the inner product of two gradients
-                pair_energy[ij[0]][ij[1]] = 1.0 / (b_tot_weights * self.beta) * torch.sum((y_grad_vec[ij[0]] * y_grad_vec[ij[1]]).sum(dim=1) * b_weights)
+                pair_energy[ij[0]][ij[1]] = 1.0 / (b_tot_weights * self.beta) * torch.sum((y_grad_vec[ij[0]] * y_grad_vec[ij[1]] * self.diag_coeff).sum(dim=1) * b_weights)
 
                 # Assign the rest entries by symmetry 
                 if ij[0] != ij[1] : 
@@ -306,13 +314,13 @@ class eigen_solver():
                Note that in the loss function we ignore the dependance of the
                maximizer c on the functions (f_i)_{1\le i \le k} (therefore on the training parameters)!  
             """
-            non_penalty_loss = 1.0 / (b_tot_weights * beta) * torch.sum((cy_grad**2).sum(dim=1) * b_weights)
+            non_penalty_loss = 1.0 / (b_tot_weights * beta) * torch.sum((cy_grad**2 * self.diag_coeff).sum(dim=1) * b_weights)
 
         else :
             # In this case we compute the first k eigenvalues.
 
             # Always Rayleigh quotients when estimating eigenvalues
-            eig_vals = torch.tensor([1.0 / self.beta * (torch.sum((y_grad_vec[idx]**2).sum(dim=1) * b_weights) / torch.sum(y[:,idx]**2 * b_weights)) for idx in range(self.k)])
+            eig_vals = torch.tensor([1.0 / self.beta * (torch.sum((y_grad_vec[idx]**2 * self.diag_coeff).sum(dim=1) * b_weights) / torch.sum(y[:,idx]**2 * b_weights)) for idx in range(self.k)])
 
             cvec = range(self.k)
             if self.sort_eigvals_in_training :
@@ -326,10 +334,10 @@ class eigen_solver():
             # The loss function is the linear combination of k terms.
             if self.use_Rayleigh_quotient == False :
                 # Use energies
-                non_penalty_loss = 1.0 / (b_tot_weights * self.beta) * sum([self.eig_w[idx] * torch.sum((y_grad_vec[cvec[idx]]**2).sum(dim=1) * b_weights) for idx in range(self.k)])
+                non_penalty_loss = 1.0 / (b_tot_weights * self.beta) * sum([self.eig_w[idx] * torch.sum((y_grad_vec[cvec[idx]]**2 * self.diag_coeff).sum(dim=1) * b_weights) for idx in range(self.k)])
             else :
                 # Use Rayleigh quotients (i.e. energy divided by 2nd moments)
-                non_penalty_loss = 1.0 / self.beta * sum([self.eig_w[idx] * torch.sum((y_grad_vec[cvec[idx]]**2).sum(dim=1) * b_weights) / torch.sum((y[:,cvec[idx]]**2 * b_weights)) for idx in range(self.k)])
+                non_penalty_loss = 1.0 / self.beta * sum([self.eig_w[idx] * torch.sum((y_grad_vec[cvec[idx]]**2 * self.diag_coeff).sum(dim=1) * b_weights) / torch.sum((y[:,cvec[idx]]**2 * b_weights)) for idx in range(self.k)])
 
         # Penalty terms corresonding to k 1st-order and k 2nd-order constraints
         penalty = torch.zeros(2, requires_grad=True).double()
@@ -503,36 +511,6 @@ class eigen_solver():
     # Call this function to train networks
     def run(self) :
 
-        # Initialize networks 
-        self.model = network_arch.MyNet(self.arch_list, self.ReLU_flag, self.k)
-
-        # These networks record training results of several consecutive training steps
-        self.averaged_model = network_arch.MyNet(self.arch_list, self.ReLU_flag, self.k)
-
-        # Use double precision
-        self.model.double()
-        self.averaged_model.double()
-
-        # Initialize Adam optimizier, with initial learning rate for stage 0
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate_list[0])
-
-        # Maximal number of items of log data
-        self.log_max_n = self.train_max_step // self.print_every_step + 1
-
-        """
-          Initialize array for log data, which includes
-            (1) total loss; 
-            (2) non-penalty part of loss; 
-            (3)-(4) two penalty terms; 
-            (5)- eigenvalues 
-        """
-        if self.all_k_eigs == False :
-            self.log_info_vec = np.zeros((self.log_max_n, 5))
-        else :
-            self.log_info_vec = np.zeros((self.log_max_n, 4 + self.k))
-
-        self.log_p_index = 0
-
         # Starting time
         self.start_time = time.process_time()
 
@@ -557,6 +535,22 @@ class eigen_solver():
         else :
             self.dim = 1 
 
+        # Include the input/output layers of neural network
+        self.arch_list = [self.dim] + self.arch_list + [1]
+
+        # Initialize networks 
+        self.model = network_arch.MyNet(self.arch_list, self.ReLU_flag, self.k)
+
+        # These networks record training results of several consecutive training steps
+        self.averaged_model = network_arch.MyNet(self.arch_list, self.ReLU_flag, self.k)
+
+        # Use double precision
+        self.model.double()
+        self.averaged_model.double()
+
+        # Initialize Adam optimizier, with initial learning rate for stage 0
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate_list[0])
+
         # Display some information 
         if self.rank == 0:
             tot_num_parameters = sum([p.numel() for p in self.model.parameters()])
@@ -565,6 +559,24 @@ class eigen_solver():
             print( '\n[Info] Time used in loading data: %.2f Sec\n' % elapsed_time )
             print ("[Info] dim=%d\n" % self.dim)
             print('\n[Info] Total number of parameters in networks: %d\n' % tot_num_parameters) 
+            print ("[Info]  NN architecture:", self.arch_list)
+
+        # Maximal number of items of log data
+        self.log_max_n = self.train_max_step // self.print_every_step + 1
+
+        """
+          Initialize array for log data, which includes
+            (1) total loss; 
+            (2) non-penalty part of loss; 
+            (3)-(4) two penalty terms; 
+            (5)- eigenvalues 
+        """
+        if self.all_k_eigs == False :
+            self.log_info_vec = np.zeros((self.log_max_n, 5))
+        else :
+            self.log_info_vec = np.zeros((self.log_max_n, 4 + self.k))
+
+        self.log_p_index = 0
 
         if self.distributed_training :  
             # On each processor, print information of data size 

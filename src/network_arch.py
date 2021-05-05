@@ -36,7 +36,6 @@ class MySequential(torch.nn.Module):
             torch.nn.init.normal_(tt.bias, 0, 0.5)
 
     def forward(self, x):
-        x = x[:,0:self.nn_dims[0]]
         for i in range(len(self.nn_dims) - 1) :
             x = self.linears[i](x)
             if i < len(self.nn_dims) - 2 :
