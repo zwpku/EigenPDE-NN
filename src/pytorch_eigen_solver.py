@@ -351,6 +351,14 @@ class eigen_solver():
         b_tot_weights = b_weights.sum()
 
         mean_list = [(y[:,idx] * b_weights).sum() / b_tot_weights for idx in range(self.k)]
+        var_list = [torch.sqrt((y[:,idx]**2 * b_weights).sum() / b_tot_weights - mean_list[idx]**2) for idx in range(self.k)]
+
+        """
+        for idx in range(self.k) : 
+            y[:, idx] -= mean_list[idx] 
+            y[:, idx] /= var_list[idx]
+            y_grad_vec[idx] /= var_list[idx]
+        """
 
         if self.all_k_eigs == False :
             """
@@ -413,7 +421,6 @@ class eigen_solver():
                 # Sort the eigenvalues 
                 eig_vals = eig_vals[cvec]
         
-
             # The loss function is the linear combination of k terms.
             if self.use_Rayleigh_quotient == False :
                 # Use energies
@@ -421,7 +428,6 @@ class eigen_solver():
             else :
                 # Use Rayleigh quotients (i.e. energy divided by 2nd moments)
                 non_penalty_loss = 1.0 / (b_tot_weights * self.beta) * sum([self.eig_w[idx] * torch.sum((y_grad_vec[cvec[idx]]**2 * self.diag_coeff).sum(dim=1) * b_weights) / (torch.sum((y[:,cvec[idx]]**2 * b_weights)) / b_tot_weights - mean_list[cvec[idx]]**2) for idx in range(self.k)])
-
 
         # Penalty terms corresonding to k 1st-order and k 2nd-order constraints
         penalty = torch.zeros(2, requires_grad=True).double()
@@ -433,7 +439,7 @@ class eigen_solver():
         for idx in range(self.num_ij_pairs):
             ij = self.ij_list[idx]
             # Sum of squares of 2nd-order constraints
-            penalty[1] += ((y[:, ij[0]] * y[:, ij[1]] * b_weights).sum() / b_tot_weights - mean_list[ij[0]] * mean_list[ij[1]] - int(ij[0] == ij[1]))**2
+            penalty[1] += ((y[:, ij[0]] * y[:, ij[1]] * b_weights).sum() / b_tot_weights / (var_list[ij[0]] * var_list[ij[1]]) - int(ij[0] == ij[1]))**2
 
         """
             print (ij, ((y[:, ij[0]] * y[:, ij[1]] * b_weights).sum() / b_tot_weights).item())
@@ -449,7 +455,7 @@ class eigen_solver():
         """
 
         # Total loss 
-        loss = 1.0 * non_penalty_loss + alpha_vec[0] * penalty[0] + alpha_vec[1] * penalty[1]
+        loss = 0.0 * non_penalty_loss + alpha_vec[0] * penalty[0] + alpha_vec[1] * penalty[1]
 
         # Update training parameters
         self.optimizer.zero_grad()
