@@ -186,7 +186,7 @@ class namd_data_loader() :
         # Number of selected atoms
         atom_num = len(selected_atoms.names)
 
-        mass_filename = './data/mass.txt'
+        mass_filename = './data/namd_mass.txt'
         # Mass of selected atoms
         if self.which_data_to_use == 'angle': 
             # We choose artificial mass for angles. Needs to be fixed in future.
@@ -219,9 +219,9 @@ class namd_data_loader() :
         states_file_name = './data/%s.txt' % (self.data_filename_prefix)
         if self.which_data_to_use == 'angle': 
             # Use angle data (dim=2)
-            np.savetxt(states_file_name, np.concatenate((angle_data, weights.reshape((K,1))), axis=1), header='%d' % K, comments="", fmt="%.10f")
+            np.savetxt(states_file_name, np.concatenate((angle_data, weights.reshape((K,1))), axis=1), header='%d %d' % (K,2), comments="", fmt="%.10f")
         else : 
             # Use trajectory data of selected atoms 
-            np.savetxt(states_file_name, np.concatenate((traj_data.reshape((-1, atom_num * 3)), weights.reshape((K,1))), axis=1), header='%d' % K, comments="", fmt="%.10f")
+            np.savetxt(states_file_name, np.concatenate((traj_data.reshape((-1, atom_num * 3)), weights.reshape((K,1))), axis=1), header='%d %d' % (K, 3 * atom_num), comments="", fmt="%.10f")
 
         print("Sampled data are stored to: %s" % states_file_name)

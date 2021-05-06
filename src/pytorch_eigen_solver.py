@@ -97,15 +97,32 @@ class eigen_solver():
 
         torch.set_printoptions(precision=20)
 
-        # Compute diagnal matrix based on mass and damping coefficient
-        mass_vec = np.loadtxt('./data/mass.txt', skiprows=1)
-        self.diag_coeff = torch.from_numpy(1.0 / Param.damping_coeff * np.reciprocal(mass_vec))
+        # Determine the dimension from datafile 
+        states_file_name = './data/%s.txt' % (self.data_filename_prefix)
+        fp = open(states_file_name, 'r')
 
-        print ("Diagonal constants (size=%d):\n" % len(self.diag_coeff), self.diag_coeff)
+        # Only read the first line, in order to find dimension
+        K_total, self.dim = [int (x) for x in fp.readline().split()]
+
+        fp.close()
+
+        if Param.namd_data_flag == True : 
+            # Compute diagnal matrix based on mass and damping coefficient
+            mass_vec = np.loadtxt('./data/namd_mass.txt', skiprows=1)
+
+            assert len(mass_vec) == self.dim, "length of mass array (%d) does not match the dimension (%d)!" % (len(mass_vec), self.dim)
+
+            # This is the friction coefficients, multiplied by the constant # # 418.4 * 1000, 
+            # such that the unit of eigenvalues given by Rayleigh quotients is ns^{-1}.
+            self.diag_coeff = torch.from_numpy(418.4 * 1e0 / Param.damping_coeff * np.reciprocal(mass_vec))
+        else :
+            self.diag_coeff = torch.ones(self.dim).double()
 
         if self.rank == 0 :
+            print ("Diagonal constants (size=%d):\n" % len(self.diag_coeff), self.diag_coeff)
             print ("[Info]  beta = %.4f" % (self.beta))
             print ("[Info]  seed = %d" % (seed))
+            print ("[Info]  dim = %d\n" % self.dim)
             print ('\tStages: ', self.stage_list)
             print ('\tBatch size list: ', self.batch_size_list)
             print ('\tLearning rate list: ', self.learning_rate_list)
@@ -134,7 +151,7 @@ class eigen_solver():
         fp = open(states_file_name, 'r')
 
         # The first line contains the total number of states
-        K_total, = [int (x) for x in fp.readline().split()]
+        K_total, tmp_dim = [int (x) for x in fp.readline().split()]
         if self.rank == 0 :
             print ("[Info] ")
             print ("[Info] load data from file: %s\n\t%d states" % (states_file_name, K_total), flush=True)
@@ -245,6 +262,52 @@ class eigen_solver():
 
         return y, y_grad_vec, self.weights[x_batch_index]
 
+
+    def constraint_update_step(self, bsz):
+
+        constraint_step_num = 0 
+        flag = True
+
+        while flag :
+
+            # Compute function values and spatial gradients on batch data
+            y, y_grad_vec, b_weights = self.fun_and_grad_on_data(bsz)
+
+            # Total weights, will be used for normalization 
+            b_tot_weights = b_weights.sum()
+
+            # Penalty terms corresonding to k 1st-order and k 2nd-order constraints
+            penalty = torch.zeros(2, requires_grad=True).double()
+
+            # Sum of squares of 1st-order constraints
+            penalty[0] = sum([((y[:,idx] * b_weights).sum() / b_tot_weights)**2 for idx in range(self.k)])
+
+            penalty[1] = 0.0 
+            for idx in range(self.num_ij_pairs):
+                ij = self.ij_list[idx]
+                # Sum of squares of 2nd-order constraints
+                penalty[1] += ((y[:, ij[0]] * y[:, ij[1]] * b_weights).sum() / b_tot_weights - int(ij[0] == ij[1]))**2
+                """
+                print (ij, ((y[:, ij[0]] * y[:, ij[1]] * b_weights).sum() / b_tot_weights).item())
+
+            for idx in range(self.k) :
+                #print (y[:,idx].min().item(), y[:,idx].max().item(), ((y[:,idx] * b_weights).sum() / b_tot_weights).item())
+                """
+
+            loss = penalty[0] + penalty[1]
+
+            # Update training parameters
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
+            constraint_step_num += 1 
+            if loss < 1e-1 :
+                flag = False
+            if constraint_step_num % 100 == 0 : 
+               print('Constraint steps:%d,   constraints= [%.4e, %.4e]' % (constraint_step_num, penalty[0], penalty[1]), flush=True)  
+
+        print('Total constraint steps:%d,   constraints= [%.4e, %.4e]' % (constraint_step_num, penalty[0], penalty[1]), flush=True)  
+
     """
       This function calculates the loss function, 
       and updates the neural network functions according to its gradient.
@@ -264,10 +327,17 @@ class eigen_solver():
 
 
       Unit of eigenvalues for NAMD applications:
-        length:             angstrom, 10^{-10}m
-        damping cofficient: ps^{-1} = 10^{12} s^{-1}
-        mass:               atomic mass unit 
-        1/beta:             kcal/mol
+        length:             angstrom, 10^{-10}m ;
+        damping cofficient: ps^{-1} = 10^{12} s^{-1} ;
+        mass:               10^{-3} kg/mol, (atomic mass unit: M_u) ;
+        1/beta:             kcal/mol (conversion: 1 kcal/mol=4184 J/mol, 1J=1kg*m^2*s^{-2}) ;
+
+        As a result, the unit of Rayleigh quotient is 
+           1kcal/mol * 10^{20} m^{-2} * 10^{-12} s / (10^{-3} kg/mol) 
+         = 418.4 * ps^{-1}
+
+        Based on this calculation, we include the constant 418.4 in the diag_coeff, 
+        so that the eigenvalues are measured in ps^{-1}.
 
     """
     def update_step(self, bsz, alpha_vec):
@@ -347,6 +417,7 @@ class eigen_solver():
                 # Use Rayleigh quotients (i.e. energy divided by 2nd moments)
                 non_penalty_loss = 1.0 / self.beta * sum([self.eig_w[idx] * torch.sum((y_grad_vec[cvec[idx]]**2 * self.diag_coeff).sum(dim=1) * b_weights) / torch.sum((y[:,cvec[idx]]**2 * b_weights)) for idx in range(self.k)])
 
+
         # Penalty terms corresonding to k 1st-order and k 2nd-order constraints
         penalty = torch.zeros(2, requires_grad=True).double()
 
@@ -359,8 +430,21 @@ class eigen_solver():
             # Sum of squares of 2nd-order constraints
             penalty[1] += ((y[:, ij[0]] * y[:, ij[1]] * b_weights).sum() / b_tot_weights - int(ij[0] == ij[1]))**2
 
+        """
+            print (ij, ((y[:, ij[0]] * y[:, ij[1]] * b_weights).sum() / b_tot_weights).item())
+
+        for idx in range(self.k) :
+            #print (y[:,idx].min().item(), y[:,idx].max().item(), ((y[:,idx] * b_weights).sum() / b_tot_weights).item())
+
+
+        if penalty[0] > 1e-1 or penalty[1] > 1e-1 :
+            loss = penalty[0] + penalty[1]
+        else :
+            print ('yes!')
+        """
+
         # Total loss 
-        loss = non_penalty_loss + alpha_vec[0] * penalty[0] + alpha_vec[1] * penalty[1]
+        loss = 1.0 * non_penalty_loss + alpha_vec[0] * penalty[0] + alpha_vec[1] * penalty[1]
 
         # Update training parameters
         self.optimizer.zero_grad()
@@ -433,7 +517,12 @@ class eigen_solver():
                 # Update the current stage index
 
                 stage_index += 1 
-     
+
+            """ 
+            if i == 0 :
+                self.constraint_update_step(bsz)
+            """ 
+
             # Update training parameters 
             if self.distributed_training :
                 # Make sure the neuron networks have the same parameters on each processor.
@@ -537,12 +626,6 @@ class eigen_solver():
         # Size of the trajectory data
         self.K = self.X_vec.shape[0]
 
-        # Decide the dimension of the data
-        if len(self.X_vec.shape) > 1: 
-            self.dim = self.X_vec.shape[1]
-        else :
-            self.dim = 1 
-
         # Include the input/output layers of neural network
         self.arch_list = [self.dim] + self.arch_list + [1]
 
@@ -565,7 +648,6 @@ class eigen_solver():
             elapsed_time = time.process_time() - self.start_time
 
             print( '\n[Info] Time used in loading data: %.2f Sec\n' % elapsed_time )
-            print ("[Info] dim=%d\n" % self.dim)
             print('\n[Info] Total number of parameters in networks: %d\n' % tot_num_parameters) 
             print ("[Info]  NN architecture:", self.arch_list)
 

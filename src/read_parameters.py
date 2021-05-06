@@ -103,13 +103,12 @@ class Param:
             self.namd_data_filename_prefix = config['NAMD'].get('namd_data_filename_prefix')
             self.namd_data_path = config['NAMD'].get('namd_data_path')
 
-            # physical quantities 
-            # boltzmann constant (unit: eV/K)
-            Kb = 8.6173333262145 * 1e-5 
-            # the unit of the PMF obtained from NAMD is: kcal/mol
-            # 1 kcal/mol = 0.043 eV
-            # At T=300, namd_beta = 1.6633
-            self.namd_beta = 0.043 / (Kb * self.temp_T)
+            # Physical quantities 
+            # Boltzmann constant (unit: kcal/(mol*K)). We use the same value as in NAMD.
+            Kb = 0.001987191 
+            # The unit of the PMF obtained from NAMD is: kcal/mol
+            # At T=300, namd_beta = 1.6774
+            self.namd_beta = 1.0 / (Kb * self.temp_T)
         else :
             self.damping_coeff = 1.0
 

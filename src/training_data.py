@@ -48,13 +48,8 @@ class PrepareData() :
                print ("%4.1f%% finished." % (i / K * 100), flush=True)
 
         states_file_name = './data/%s.txt' % (data_filename_prefix)
-        np.savetxt(states_file_name, X_vec, header='%d' % K, comments="", fmt="%.10f")
+        np.savetxt(states_file_name, X_vec, header='%d %d' % (K, dim), comments="", fmt="%.10f")
         print("\nsampled data are stored to: %s" % states_file_name)
-
-        mass_filename = './data/mass.txt' 
-        np.savetxt(mass_filename, np.ones(dim), header='%d' % dim, comments="", fmt="%.10f")
-        # Save mass to file
-        print ( 'Mass saved to file:%s\n' % mass_filename )
 
     def prepare_data(self) :
         if self.Param.namd_data_flag == True :
