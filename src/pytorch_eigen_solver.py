@@ -7,7 +7,7 @@ import torch
 from collections import OrderedDict
 import time
 from numpy import linalg as LA
-from itertools import combinations_with_replacement
+import itertools 
 
 import network_arch 
 
@@ -72,7 +72,9 @@ class eigen_solver():
         self.log_filename = Param.log_filename
 
         # list of (i,j) pairs
-        self.ij_list = list(combinations_with_replacement(range(Param.k), 2))
+        #self.ij_list = list(itertools.combinations_with_replacement(range(Param.k), 2))
+        self.ij_list = list(itertools.combinations(range(Param.k), 2))
+        print (self.ij_list)
         self.num_ij_pairs = len(self.ij_list)
 
         if Param.num_processor > 1 :
@@ -114,7 +116,7 @@ class eigen_solver():
 
             # This is the friction coefficients, multiplied by the constant # # 418.4 * 1000, 
             # such that the unit of eigenvalues given by Rayleigh quotients is ns^{-1}.
-            self.diag_coeff = torch.from_numpy(418.4 * 1e0 / Param.damping_coeff * np.reciprocal(mass_vec))
+            self.diag_coeff = torch.from_numpy(418.4 * 1e3 / Param.damping_coeff * np.reciprocal(mass_vec))
         else :
             self.diag_coeff = torch.ones(self.dim).double()
 
@@ -348,6 +350,8 @@ class eigen_solver():
         # Total weights, will be used for normalization 
         b_tot_weights = b_weights.sum()
 
+        mean_list = [(y[:,idx] * b_weights).sum() / b_tot_weights for idx in range(self.k)]
+
         if self.all_k_eigs == False :
             """
               In this case, the min-max principle for the kth eigenvalue is used as the loss function;
@@ -398,7 +402,7 @@ class eigen_solver():
             # In this case we compute the first k eigenvalues.
 
             # Always Rayleigh quotients when estimating eigenvalues
-            eig_vals = torch.tensor([1.0 / self.beta * (torch.sum((y_grad_vec[idx]**2 * self.diag_coeff).sum(dim=1) * b_weights) / torch.sum(y[:,idx]**2 * b_weights)) for idx in range(self.k)])
+            eig_vals = torch.tensor([1.0 / (b_tot_weights * self.beta) * torch.sum((y_grad_vec[idx]**2 * self.diag_coeff).sum(dim=1) * b_weights) / (torch.sum(y[:,idx]**2 * b_weights) / b_tot_weights - mean_list[idx]**2) for idx in range(self.k)])
 
             cvec = range(self.k)
             if self.sort_eigvals_in_training :
@@ -409,26 +413,27 @@ class eigen_solver():
                 # Sort the eigenvalues 
                 eig_vals = eig_vals[cvec]
         
+
             # The loss function is the linear combination of k terms.
             if self.use_Rayleigh_quotient == False :
                 # Use energies
                 non_penalty_loss = 1.0 / (b_tot_weights * self.beta) * sum([self.eig_w[idx] * torch.sum((y_grad_vec[cvec[idx]]**2 * self.diag_coeff).sum(dim=1) * b_weights) for idx in range(self.k)])
             else :
                 # Use Rayleigh quotients (i.e. energy divided by 2nd moments)
-                non_penalty_loss = 1.0 / self.beta * sum([self.eig_w[idx] * torch.sum((y_grad_vec[cvec[idx]]**2 * self.diag_coeff).sum(dim=1) * b_weights) / torch.sum((y[:,cvec[idx]]**2 * b_weights)) for idx in range(self.k)])
+                non_penalty_loss = 1.0 / (b_tot_weights * self.beta) * sum([self.eig_w[idx] * torch.sum((y_grad_vec[cvec[idx]]**2 * self.diag_coeff).sum(dim=1) * b_weights) / (torch.sum((y[:,cvec[idx]]**2 * b_weights)) / b_tot_weights - mean_list[cvec[idx]]**2) for idx in range(self.k)])
 
 
         # Penalty terms corresonding to k 1st-order and k 2nd-order constraints
         penalty = torch.zeros(2, requires_grad=True).double()
 
         # Sum of squares of 1st-order constraints
-        penalty[0] = sum([((y[:,idx] * b_weights).sum() / b_tot_weights)**2 for idx in range(self.k)])
+        #penalty[0] = sum([((y[:,idx] * b_weights).sum() / b_tot_weights)**2 for idx in range(self.k)])
 
         penalty[1] = 0.0 
         for idx in range(self.num_ij_pairs):
             ij = self.ij_list[idx]
             # Sum of squares of 2nd-order constraints
-            penalty[1] += ((y[:, ij[0]] * y[:, ij[1]] * b_weights).sum() / b_tot_weights - int(ij[0] == ij[1]))**2
+            penalty[1] += ((y[:, ij[0]] * y[:, ij[1]] * b_weights).sum() / b_tot_weights - mean_list[ij[0]] * mean_list[ij[1]] - int(ij[0] == ij[1]))**2
 
         """
             print (ij, ((y[:, ij[0]] * y[:, ij[1]] * b_weights).sum() / b_tot_weights).item())
