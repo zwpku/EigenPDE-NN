@@ -88,8 +88,9 @@ class Param:
         if self.include_constraint_step == True :
             self.constraint_tol = config['Training'].getfloat('constraint_tol')
             self.constraint_learning_rate = config['Training'].getfloat('constraint_learning_rate')
-            self.constraint_max_step = config['Training'].getfint('constraint_max_step')
+            self.constraint_max_step = config['Training'].getint('constraint_max_step')
             self.constraint_penalty_method  = config['Training'].getboolean('constraint_penalty_method')
+            self.constraint_how_often = config['Training'].getint('constraint_how_often')
 
         # If true, eigenvalues will be sorted ascendingly 
         self.sort_eigvals_in_training = config['Training'].getboolean('sort_eigvals_in_training')
