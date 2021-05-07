@@ -30,12 +30,11 @@ class MySequential(torch.nn.Module):
             self.activations = torch.nn.ModuleList([torch.nn.ReLU() for i in range(len(self.nn_dims)-2)])
         else :
             self.activations = torch.nn.ModuleList([torch.nn.Tanh() for i in range(len(self.nn_dims)-2)])
+
         # initialize the tensors
         for tt in self.linears:
             torch.nn.init.normal_(tt.weight, 0, 0.5)
             torch.nn.init.normal_(tt.bias, 0, 0.5)
-#        print (self.linears[-1].weight)
-#        print (self.linears[-1].bias)
 
     def forward(self, x):
         for i in range(len(self.nn_dims) - 1) :

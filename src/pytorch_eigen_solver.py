@@ -60,6 +60,21 @@ class eigen_solver():
         self.arch_list = Param.inner_arch_size_list 
 
         self.use_Rayleigh_quotient = Param.use_Rayleigh_quotient
+        self.use_reduced_2nd_penalty = Param.use_reduced_2nd_penalty
+
+        self.include_constraint_step = Param.include_constraint_step
+
+        self.penalty_method = True 
+
+        if self.include_constraint_step == True :
+            self.constraint_tol = Param.constraint_tol
+            self.constraint_max_step = Param.constraint_max_step
+            self.constraint_learning_rate = Param.constraint_learning_rate 
+            self.constraint_learning_rate = Param.constraint_learning_rate 
+            self.constraint_penalty_method = Param.constraint_penalty_method 
+            if self.constraint_penalty_method == False :
+                self.penalty_method = False
+
         self.ReLU_flag = Param.ReLU_flag
 
         self.train_max_step = Param.train_max_step
@@ -74,7 +89,6 @@ class eigen_solver():
         # list of (i,j) pairs
         #self.ij_list = list(itertools.combinations_with_replacement(range(Param.k), 2))
         self.ij_list = list(itertools.combinations(range(Param.k), 2))
-        print (self.ij_list)
         self.num_ij_pairs = len(self.ij_list)
 
         if Param.num_processor > 1 :
@@ -119,6 +133,11 @@ class eigen_solver():
             self.diag_coeff = torch.from_numpy(418.4 * 1e3 / Param.damping_coeff * np.reciprocal(mass_vec))
         else :
             self.diag_coeff = torch.ones(self.dim).double()
+
+        if self.use_Rayleigh_quotient == False and self.use_reduced_2nd_penalty == True :
+            self.use_reduced_2nd_penalty = False 
+            if self.rank == 0 :
+                print ('Change the flag use_reduced_2nd_penalty=False, since reduced 2nd-order penalty is supported only when Rayleigh quotient is used.\n')
 
         if self.rank == 0 :
             print ("Diagonal constants (size=%d):\n" % len(self.diag_coeff), self.diag_coeff)
@@ -265,6 +284,30 @@ class eigen_solver():
         return y, y_grad_vec, self.weights[x_batch_index]
 
 
+    # Penalty terms corresonding to 1st-order and 2nd-order constraints
+    def penalty_terms(self, mean_list, var_list) :
+
+        penalty = torch.zeros(2, requires_grad=True).double()
+
+        if self.use_Rayleigh_quotient == False :
+          # Sum of squares of 1st-order constraints
+          penalty[0] = sum([mean_list[idx]**2 for idx in range(self.k)])
+
+        if self.use_reduced_2nd_penalty == False :
+          # Sum of squares of 2nd-order constraints for each eigenfunction
+          penalty[1] = sum([(var_list[idx] - 1.0)**2 for idx in range(self.k)])
+          for idx in range(self.num_ij_pairs):
+            ij = self.ij_list[idx]
+            # Sum of squares of 2nd-order constraints between two different eigenfunctions
+            penalty[1] += ((y[:, ij[0]] * y[:, ij[1]] * b_weights).sum() / b_tot_weights - mean_list[ij[0]] * mean_list[ij[1]])**2
+        else : 
+          for idx in range(self.num_ij_pairs) :
+            ij = self.ij_list[idx]
+            # Sum of squares of 2nd-order constraints between two different eigenfunctions
+            penalty[1] += ((y[:, ij[0]] * y[:, ij[1]] * b_weights).sum() / b_tot_weights - mean_list[ij[0]] * mean_list[ij[1]])**2 / (var_list[ij[0]] * var_list[ij[1]])
+
+        return penalty 
+
     def constraint_update_step(self, bsz):
 
         constraint_step_num = 0 
@@ -278,37 +321,28 @@ class eigen_solver():
             # Total weights, will be used for normalization 
             b_tot_weights = b_weights.sum()
 
-            # Penalty terms corresonding to k 1st-order and k 2nd-order constraints
-            penalty = torch.zeros(2, requires_grad=True).double()
+            mean_list = [(y[:,idx] * b_weights).sum() / b_tot_weights for idx in range(self.k)]
+            var_list = [(y[:,idx]**2 * b_weights).sum() / b_tot_weights - mean_list[idx]**2 for idx in range(self.k)]
 
-            # Sum of squares of 1st-order constraints
-            penalty[0] = sum([((y[:,idx] * b_weights).sum() / b_tot_weights)**2 for idx in range(self.k)])
-
-            penalty[1] = 0.0 
-            for idx in range(self.num_ij_pairs):
-                ij = self.ij_list[idx]
-                # Sum of squares of 2nd-order constraints
-                penalty[1] += ((y[:, ij[0]] * y[:, ij[1]] * b_weights).sum() / b_tot_weights - int(ij[0] == ij[1]))**2
-                """
-                print (ij, ((y[:, ij[0]] * y[:, ij[1]] * b_weights).sum() / b_tot_weights).item())
-
-            for idx in range(self.k) :
-                #print (y[:,idx].min().item(), y[:,idx].max().item(), ((y[:,idx] * b_weights).sum() / b_tot_weights).item())
-                """
+            penalty = self.penalty_terms(mean_list, var_list)
 
             loss = penalty[0] + penalty[1]
 
             # Update training parameters
-            self.optimizer.zero_grad()
+            self.constraint_optimizer.zero_grad()
             loss.backward()
-            self.optimizer.step()
-            constraint_step_num += 1 
-            if loss < 1e-1 :
-                flag = False
-            if constraint_step_num % 100 == 0 : 
-               print('Constraint steps:%d,   constraints= [%.4e, %.4e]' % (constraint_step_num, penalty[0], penalty[1]), flush=True)  
+            self.constraint_optimizer.step()
 
-        print('Total constraint steps:%d,   constraints= [%.4e, %.4e]' % (constraint_step_num, penalty[0], penalty[1]), flush=True)  
+            constraint_step_num += 1 
+            if loss < self.constraint_tol :
+                flag = False
+            if self.rank == 0 and constraint_step_num % 100 == 0 : 
+               print('Constraint steps:%d,   constraints= [%.4e, %.4e]' % (constraint_step_num, penalty[0], penalty[1]), flush=True)  
+            if constraint_step_num >= self.constraint_max_step : 
+                print("Rank=%d, Constraint tolerance %.4f not reached in %d steps.\n" % (self.rank, constraint_step_num, self.constraint_tol), flush=True)  
+
+        if self.rank == 0 :
+            print('Total constraint steps: %d,   constraints= [%.4e, %.4e]' % (constraint_step_num, penalty[0], penalty[1]), flush=True)  
 
     """
       This function calculates the loss function, 
@@ -351,14 +385,7 @@ class eigen_solver():
         b_tot_weights = b_weights.sum()
 
         mean_list = [(y[:,idx] * b_weights).sum() / b_tot_weights for idx in range(self.k)]
-        var_list = [torch.sqrt((y[:,idx]**2 * b_weights).sum() / b_tot_weights - mean_list[idx]**2) for idx in range(self.k)]
-
-        """
-        for idx in range(self.k) : 
-            y[:, idx] -= mean_list[idx] 
-            y[:, idx] /= var_list[idx]
-            y_grad_vec[idx] /= var_list[idx]
-        """
+        var_list = [(y[:,idx]**2 * b_weights).sum() / b_tot_weights - mean_list[idx]**2 for idx in range(self.k)]
 
         if self.all_k_eigs == False :
             """
@@ -410,7 +437,7 @@ class eigen_solver():
             # In this case we compute the first k eigenvalues.
 
             # Always Rayleigh quotients when estimating eigenvalues
-            eig_vals = torch.tensor([1.0 / (b_tot_weights * self.beta) * torch.sum((y_grad_vec[idx]**2 * self.diag_coeff).sum(dim=1) * b_weights) / (torch.sum(y[:,idx]**2 * b_weights) / b_tot_weights - mean_list[idx]**2) for idx in range(self.k)])
+            eig_vals = torch.tensor([1.0 / (b_tot_weights * self.beta) * torch.sum((y_grad_vec[idx]**2 * self.diag_coeff).sum(dim=1) * b_weights) / var_list[idx] for idx in range(self.k)])
 
             cvec = range(self.k)
             if self.sort_eigvals_in_training :
@@ -426,36 +453,17 @@ class eigen_solver():
                 # Use energies
                 non_penalty_loss = 1.0 / (b_tot_weights * self.beta) * sum([self.eig_w[idx] * torch.sum((y_grad_vec[cvec[idx]]**2 * self.diag_coeff).sum(dim=1) * b_weights) for idx in range(self.k)])
             else :
-                # Use Rayleigh quotients (i.e. energy divided by 2nd moments)
-                non_penalty_loss = 1.0 / (b_tot_weights * self.beta) * sum([self.eig_w[idx] * torch.sum((y_grad_vec[cvec[idx]]**2 * self.diag_coeff).sum(dim=1) * b_weights) / (torch.sum((y[:,cvec[idx]]**2 * b_weights)) / b_tot_weights - mean_list[cvec[idx]]**2) for idx in range(self.k)])
+                # Use Rayleigh quotients (i.e. energy divided by variance)
+                non_penalty_loss = 1.0 / (b_tot_weights * self.beta) * sum([self.eig_w[idx] * torch.sum((y_grad_vec[cvec[idx]]**2 * self.diag_coeff).sum(dim=1) * b_weights) / var_list[cvec[idx]]  for idx in range(self.k)])
 
-        # Penalty terms corresonding to k 1st-order and k 2nd-order constraints
-        penalty = torch.zeros(2, requires_grad=True).double()
-
-        # Sum of squares of 1st-order constraints
-        #penalty[0] = sum([((y[:,idx] * b_weights).sum() / b_tot_weights)**2 for idx in range(self.k)])
-
-        penalty[1] = 0.0 
-        for idx in range(self.num_ij_pairs):
-            ij = self.ij_list[idx]
-            # Sum of squares of 2nd-order constraints
-            penalty[1] += ((y[:, ij[0]] * y[:, ij[1]] * b_weights).sum() / b_tot_weights / (var_list[ij[0]] * var_list[ij[1]]) - int(ij[0] == ij[1]))**2
-
-        """
-            print (ij, ((y[:, ij[0]] * y[:, ij[1]] * b_weights).sum() / b_tot_weights).item())
-
-        for idx in range(self.k) :
-            #print (y[:,idx].min().item(), y[:,idx].max().item(), ((y[:,idx] * b_weights).sum() / b_tot_weights).item())
-
-
-        if penalty[0] > 1e-1 or penalty[1] > 1e-1 :
-            loss = penalty[0] + penalty[1]
-        else :
-            print ('yes!')
-        """
 
         # Total loss 
-        loss = 0.0 * non_penalty_loss + alpha_vec[0] * penalty[0] + alpha_vec[1] * penalty[1]
+        if self.penalty_method == True :
+            penalty = self.penalty_terms(mean_list, var_list)
+            loss = 1.0 * non_penalty_loss + alpha_vec[0] * penalty[0] + alpha_vec[1] * penalty[1]
+        else :
+            penalty = torch.zeros(2, requires_grad=True).double()
+            loss = non_penalty_loss
 
         # Update training parameters
         self.optimizer.zero_grad()
@@ -529,19 +537,16 @@ class eigen_solver():
 
                 stage_index += 1 
 
-            """ 
-            if i == 0 :
-                self.constraint_update_step(bsz)
-            """ 
-
             # Update training parameters 
             if self.distributed_training :
                 # Make sure the neuron networks have the same parameters on each processor.
                 self.average_model_parameters()
-
+                if self.include_constraint_step == True :
+                    self.constraint_update_step(bsz_local)
                 eig_vals, cvec, loss, non_penalty_loss, penalty = self.update_step(bsz_local, alpha_vec)
-
             else :
+                if self.include_constraint_step == True :
+                    self.constraint_update_step(bsz)
                 eig_vals, cvec, loss, non_penalty_loss, penalty = self.update_step(bsz, alpha_vec)
 
             # Update the statistics of eigenvalues
@@ -652,6 +657,10 @@ class eigen_solver():
 
         # Initialize Adam optimizier, with initial learning rate for stage 0
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate_list[0])
+
+        # Create another optimizer for solving constriants
+        if self.include_constraint_step == True :
+            self.constraint_optimizer = torch.optim.Adam(self.model.parameters(), lr=self.constraint_learning_rate)
 
         # Display some information 
         if self.rank == 0:
