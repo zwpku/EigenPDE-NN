@@ -34,7 +34,7 @@ if with_FVD_solution :
         plt.plot(xvec, sol_by_FVD, color=lc[idx], label=r'$FVD, idx=%d$' % (idx_vec[idx]) )
 
 sign_list = [1 for i in range(tot_num_k)]
-sign_list[0] = 1
+sign_list[0] = -1
 if len(sign_list) > 1 :
     sign_list[1] = -1
 
