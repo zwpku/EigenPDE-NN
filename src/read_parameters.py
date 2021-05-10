@@ -110,6 +110,7 @@ class Param:
             self.pdb_path = config['NAMD'].get('pdb_path')
             self.pdb_prefix = config['NAMD'].get('pdb_prefix')
             self.which_data_to_use = config['NAMD'].get('which_data_to_use')
+            self.use_biased_data = config['NAMD'].getboolean('use_biased_data')
             self.align_data_flag = config['NAMD'].getboolean('align_data_flag')
             self.namd_data_filename_prefix = config['NAMD'].get('namd_data_filename_prefix')
             self.namd_data_path = config['NAMD'].get('namd_data_path')
