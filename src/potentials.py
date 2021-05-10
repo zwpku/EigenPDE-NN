@@ -19,6 +19,7 @@ class PotClass():
               y[idx] = b * pi**2 / (4 * a**2) * (x + a) ** 2
             if x >= -a and x <= a :
               y[idx] = b * 0.5 * (math.cos(x / a * pi) + 1.0)
+            y[idx] -= 0.6 * x
         return y
 
     def grad_modified_dw1d(self, xvec, a=1.0, b=1.0): 
@@ -31,6 +32,7 @@ class PotClass():
                 y[idx] = b * pi**2 / (2 * a**2) * (x + a)
             if x >= -a and x <= a : 
                 y[idx] = - b * pi / (2 * a) * math.sin(x * pi / a)
+            y[idx] -= 0.6
         return y.reshape((-1, 1))
 
     # pot_id=1

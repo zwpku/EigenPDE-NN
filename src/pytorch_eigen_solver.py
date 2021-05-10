@@ -231,9 +231,16 @@ class eigen_solver():
             for param_tensor in src.state_dict():
                 des.state_dict()[param_tensor].add_(src.state_dict()[param_tensor].detach())
 
-    def get_mean_from_sum_of_model(self, num):
+    # Perform the following operations on coefficients of neural networks :
+    # 1) Compute mean of averaged model from accumulated sum, 
+    # 2) Shift mean value, 
+    # 3) Normalize
+    def update_averaged_model(self, num):
+        # Step 1 
         for param in self.averaged_model.parameters():
             param /= num
+        # Step 2 and 3
+        self.averaged_model.shift_and_normalize(self.mean_of_nn, self.var_of_nn) 
 
     """ 
       Model parameter (or gradient) averaging;
@@ -272,7 +279,7 @@ class eigen_solver():
         x_batch.requires_grad = True
 
         # Evaluate function value on data
-        y = self.model(x_batch)
+        self.y = self.model(x_batch)
 
         # Vector used in computing spatial gradient of functions in pytorch, 
         # where each component of the vector equals 1.
@@ -283,32 +290,38 @@ class eigen_solver():
           The flag create_graph=True is needed, because later we need to compute
           gradients w.r.t. parameters; Please refer to the torch.autograd.grad function for details.
         """
-        y_grad_vec = [torch.autograd.grad(y[:,idx], x_batch, v_in_jac, create_graph=True)[0] for idx in range(self.k)]
+        self.y_grad_vec = [torch.autograd.grad(self.y[:,idx], x_batch, v_in_jac, create_graph=True)[0] for idx in range(self.k)]
 
-        return y, y_grad_vec, self.weights[x_batch_index]
+        self.b_weights= self.weights[x_batch_index]
 
+        # Total weights, will be used for normalization 
+        self.b_tot_weights = self.b_weights.sum()
+
+        # Mean and variance evaluated on data
+        self.mean_list = [(self.y[:,idx] * self.b_weights).sum() / self.b_tot_weights for idx in range(self.k)]
+        self.var_list = [(self.y[:,idx]**2 * self.b_weights).sum() / self.b_tot_weights - self.mean_list[idx]**2 for idx in range(self.k)]
 
     # Penalty terms corresonding to 1st-order and 2nd-order constraints
-    def penalty_terms(self, y, b_weights, b_tot_weights, mean_list, var_list) :
+    def penalty_terms(self) :
 
         penalty = torch.zeros(2, requires_grad=True).double()
 
         if self.use_Rayleigh_quotient == False :
           # Include mean constraint in penalty
-          penalty[0] = sum([mean_list[idx]**2 for idx in range(self.k)])
+          penalty[0] = sum([self.mean_list[idx]**2 for idx in range(self.k)])
 
         if self.use_reduced_2nd_penalty == False :
           # Sum of squares of variance for each eigenfunction
-          penalty[1] = sum([(var_list[idx] - 1.0)**2 for idx in range(self.k)])
+          penalty[1] = sum([(self.var_list[idx] - 1.0)**2 for idx in range(self.k)])
           for idx in range(self.num_ij_pairs):
             ij = self.ij_list[idx]
             # Sum of squares of covariance between two different eigenfunctions
-            penalty[1] += ((y[:, ij[0]] * y[:, ij[1]] * b_weights).sum() / b_tot_weights - mean_list[ij[0]] * mean_list[ij[1]])**2
+            penalty[1] += ((self.y[:, ij[0]] * self.y[:, ij[1]] * self.b_weights).sum() / self.b_tot_weights - self.mean_list[ij[0]] * self.mean_list[ij[1]])**2
         else : 
           for idx in range(self.num_ij_pairs) :
             ij = self.ij_list[idx]
             # Sum of squares of normalized covariance (or correlation coefficient) between two different eigenfunctions
-            penalty[1] += ((y[:, ij[0]] * y[:, ij[1]] * b_weights).sum() / b_tot_weights - mean_list[ij[0]] * mean_list[ij[1]])**2 / (var_list[ij[0]] * var_list[ij[1]])
+            penalty[1] += ((self.y[:, ij[0]] * self.y[:, ij[1]] * self.b_weights).sum() / self.b_tot_weights - self.mean_list[ij[0]] * self.mean_list[ij[1]])**2 / (self.var_list[ij[0]] * self.var_list[ij[1]])
 
         return penalty 
 
@@ -322,17 +335,10 @@ class eigen_solver():
         while flag :
 
             # Compute function values and spatial gradients on batch data
-            y, y_grad_vec, b_weights = self.fun_and_grad_on_data(bsz)
-
-            # Total weights, will be used for normalization 
-            b_tot_weights = b_weights.sum()
-
-            # Mean and variance evaluated on data
-            mean_list = [(y[:,idx] * b_weights).sum() / b_tot_weights for idx in range(self.k)]
-            var_list = [(y[:,idx]**2 * b_weights).sum() / b_tot_weights - mean_list[idx]**2 for idx in range(self.k)]
+            self.fun_and_grad_on_data(bsz)
 
             # Compute penalties
-            penalty = self.penalty_terms(y, b_weights, b_tot_weights, mean_list, var_list)
+            penalty = self.penalty_terms()
 
             loss = penalty[0] + penalty[1]
 
@@ -389,13 +395,7 @@ class eigen_solver():
     def update_step(self, bsz, alpha_vec):
 
         # Compute function values and spatial gradients on batch data
-        y, y_grad_vec, b_weights = self.fun_and_grad_on_data(bsz)
-
-        # Total weights, will be used for normalization 
-        b_tot_weights = b_weights.sum()
-
-        mean_list = [(y[:,idx] * b_weights).sum() / b_tot_weights for idx in range(self.k)]
-        var_list = [(y[:,idx]**2 * b_weights).sum() / b_tot_weights - mean_list[idx]**2 for idx in range(self.k)]
+        self.fun_and_grad_on_data(bsz)
 
         if self.all_k_eigs == False :
             """
@@ -410,7 +410,7 @@ class eigen_solver():
                 ij = self.ij_list[idx]
 
                 # Entries of the matrix: weighted averages (scaled by 1/beta) of the inner product of two gradients
-                pair_energy[ij[0]][ij[1]] = 1.0 / (b_tot_weights * self.beta) * torch.sum((y_grad_vec[ij[0]] * y_grad_vec[ij[1]] * self.diag_coeff).sum(dim=1) * b_weights)
+                pair_energy[ij[0]][ij[1]] = 1.0 / (self.b_tot_weights * self.beta) * torch.sum((self.y_grad_vec[ij[0]] * self.y_grad_vec[ij[1]] * self.diag_coeff).sum(dim=1) * self.b_weights)
 
                 # Assign the rest entries by symmetry 
                 if ij[0] != ij[1] : 
@@ -426,8 +426,8 @@ class eigen_solver():
             cvec = torch.tensor(vecs[:, max_idx])
 
             # Compute linear combination of \sum_{i=1}^k c_if_i, and its gradient
-            cy = torch.matmul(y, cvec)
-            cy_grad = sum([cvec[j1] * y_grad_vec[j1] for j1 in range(k)])
+            cy = torch.matmul(self.y, cvec)
+            cy_grad = sum([cvec[j1] * self.y_grad_vec[j1] for j1 in range(k)])
 
             # Since we impose constraints by penalty terms, \sum_{i=1}^k c_if_i is not exactly normalized. 
             # Here, we use its norm when computing the eigenvalue (but not in the loss function)
@@ -441,13 +441,12 @@ class eigen_solver():
                Note that in the loss function we ignore the dependance of the
                maximizer c on the functions (f_i)_{1\le i \le k} (therefore on the training parameters)!  
             """
-            non_penalty_loss = 1.0 / (b_tot_weights * beta) * torch.sum((cy_grad**2 * self.diag_coeff).sum(dim=1) * b_weights)
-
+            non_penalty_loss = 1.0 / (self.b_tot_weights * beta) * torch.sum((cy_grad**2 * self.diag_coeff).sum(dim=1) * self.b_weights)
         else :
             # In this case we compute the first k eigenvalues.
 
             # Always Rayleigh quotients when estimating eigenvalues
-            eig_vals = torch.tensor([1.0 / (b_tot_weights * self.beta) * torch.sum((y_grad_vec[idx]**2 * self.diag_coeff).sum(dim=1) * b_weights) / var_list[idx] for idx in range(self.k)])
+            eig_vals = torch.tensor([1.0 / (self.b_tot_weights * self.beta) * torch.sum((self.y_grad_vec[idx]**2 * self.diag_coeff).sum(dim=1) * self.b_weights) / self.var_list[idx] for idx in range(self.k)])
 
             cvec = range(self.k)
             if self.sort_eigvals_in_training :
@@ -461,14 +460,13 @@ class eigen_solver():
             # The loss function is the linear combination of k terms.
             if self.use_Rayleigh_quotient == False :
                 # Use energies
-                non_penalty_loss = 1.0 / (b_tot_weights * self.beta) * sum([self.eig_w[idx] * torch.sum((y_grad_vec[cvec[idx]]**2 * self.diag_coeff).sum(dim=1) * b_weights) for idx in range(self.k)])
+                non_penalty_loss = 1.0 / (self.b_tot_weights * self.beta) * sum([self.eig_w[idx] * torch.sum((self.y_grad_vec[cvec[idx]]**2 * self.diag_coeff).sum(dim=1) * self.b_weights) for idx in range(self.k)])
             else :
                 # Use Rayleigh quotients (i.e. energy divided by variance)
-                non_penalty_loss = 1.0 / (b_tot_weights * self.beta) * sum([self.eig_w[idx] * torch.sum((y_grad_vec[cvec[idx]]**2 * self.diag_coeff).sum(dim=1) * b_weights) / var_list[cvec[idx]]  for idx in range(self.k)])
-
+                non_penalty_loss = 1.0 / (self.b_tot_weights * self.beta) * sum([self.eig_w[idx] * torch.sum((self.y_grad_vec[cvec[idx]]**2 * self.diag_coeff).sum(dim=1) * self.b_weights) / self.var_list[cvec[idx]]  for idx in range(self.k)])
 
         # Always compute penalty terms, even if not used
-        penalty = self.penalty_terms(y, b_weights, b_tot_weights, mean_list, var_list)
+        penalty = self.penalty_terms()
 
         # Total loss 
         if self.penalty_method == True :
@@ -481,6 +479,7 @@ class eigen_solver():
         # Update training parameters
         self.optimizer.zero_grad()
         loss.backward()
+        self.optimizer.step()
 
         if self.distributed_training :
             # Average gradients and other quantities among processors
@@ -498,11 +497,15 @@ class eigen_solver():
             self.dist.all_reduce(eig_vals, op=self.dist.ReduceOp.SUM)
             eig_vals /= self.size
 
+            self.dist.all_reduce(self.mean_list, op=self.dist.ReduceOp.SUM)
+            self.mean_list /= self.size
+
+            self.dist.all_reduce(self.var_list, op=self.dist.ReduceOp.SUM)
+            self.var_list /= self.size
+
             if self.all_k_eigs == False :
                 self.dist.all_reduce(cvec, op=self.dist.ReduceOp.SUM)
                 cvec /= self.size
-
-        self.optimizer.step()
 
         return eig_vals.numpy(), cvec.numpy(), loss, non_penalty_loss, penalty
 
@@ -538,11 +541,17 @@ class eigen_solver():
                 # Reset parameters of averaged_model to zero
                 self.zero_model_parameters(self.averaged_model)
 
+                # Mean and variance of functions represented by neuron networks
+                self.mean_of_nn = torch.zeros(self.k, requires_grad=False).double()
+                self.var_of_nn = torch.zeros(self.k, requires_grad=False).double()
+
                 # Distribute batch size to each processor
                 if self.distributed_training :
                     bsz_local = bsz // self.size
                     if self.rank < bsz % self.size :
                        bsz_local += 1
+                else :
+                    bsz_local = bsz
 
                 if self.rank == 0 :
                     print ('\n[Info] Start %dth training stage from step %d\n\t batch size=%d, lr=%.4f, alpha=[%.2f,%.2f]\n' % (stage_index+1, i, bsz, self.learning_rate_list[stage_index], alpha_vec[0], alpha_vec[1]))
@@ -554,13 +563,13 @@ class eigen_solver():
             if self.distributed_training :
                 # Make sure the neuron networks have the same parameters on each processor.
                 self.average_model_parameters()
-                if self.include_constraint_step == True and i % self.constraint_how_often == 0 :
-                    self.constraint_update_step(bsz_local)
-                eig_vals, cvec, loss, non_penalty_loss, penalty = self.update_step(bsz_local, alpha_vec)
-            else :
-                if self.include_constraint_step == True and i % self.constraint_how_often == 0 :
-                    self.constraint_update_step(bsz)
-                eig_vals, cvec, loss, non_penalty_loss, penalty = self.update_step(bsz, alpha_vec)
+
+            if self.include_constraint_step == True and i % self.constraint_how_often == 0 :
+                # Train neural networks to meet constraints 
+                self.constraint_update_step(bsz_local)
+
+            # Train neuron networks to minimize loss 
+            eig_vals, cvec, loss, non_penalty_loss, penalty = self.update_step(bsz_local, alpha_vec)
 
             # Update the statistics of eigenvalues
             if self.all_k_eigs :
@@ -573,6 +582,10 @@ class eigen_solver():
                 averaged_cvec += cvec 
 
             self.record_model_parameters(self.averaged_model, self.model, cvec)
+
+            # Record mean/var of the current step
+            self.mean_of_nn += torch.tensor(self.mean_list).detach()
+            self.var_of_nn += torch.tensor(self.var_list).detach()
 
             # Print information, if we are at the end of each stage 
             if self.rank == 0 and i + 1 == self.stage_list[stage_index] :
@@ -591,8 +604,13 @@ class eigen_solver():
                         mean_eig_vals[ii] /= tot_step_in_stage
                         var_eig_vals[ii] = var_eig_vals[ii] / tot_step_in_stage - mean_eig_vals[ii]**2
                         print ('  %dth eig:  mean=%.4f, var=%.4f' % (ii+1, mean_eig_vals[ii], math.sqrt(var_eig_vals[ii])) )
-                
-                self.get_mean_from_sum_of_model(tot_step_in_stage)
+
+                 # Compute mean from accumulated sum of different steps
+                self.mean_of_nn /= tot_step_in_stage
+                self.var_of_nn /= tot_step_in_stage
+               
+                # Compute mean of averaged model, shift mean value and normalize
+                self.update_averaged_model(tot_step_in_stage)
 
                 # Save networks to file for each stage
                 file_name = './data/%s_stage%d.pt' % (self.eig_file_name_prefix, stage_index)

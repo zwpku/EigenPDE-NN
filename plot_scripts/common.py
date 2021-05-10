@@ -6,6 +6,9 @@ task_name_list = ['2D metastable', '100Dim, metastable in x_1 and x_2', '100Dim,
 task_id = 0
 conjugated_eigvec_flag = 0
 
+#with_FVD_solution = False
+with_FVD_solution = True
+
 working_dir_name = working_dir_list[task_id]
 task_name = task_name_list[task_id]
 

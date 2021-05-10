@@ -36,6 +36,10 @@ class MySequential(torch.nn.Module):
             torch.nn.init.normal_(tt.weight, 0, 0.5)
             torch.nn.init.normal_(tt.bias, 0, 0.5)
 
+    def shift_and_normalize(self, mean, var) :
+        self.linears[-1].bias -= mean 
+        self.linears[-1].weight /= torch.sqrt(var) 
+
     def forward(self, x):
         for i in range(len(self.nn_dims) - 1) :
             x = self.linears[i](x)
@@ -50,6 +54,10 @@ class MyNet(torch.nn.Module):
         self.d_out = d_out
         self.nets = torch.nn.ModuleList([MySequential(size_list, ReLU_flag) for i in range(d_out)])
         #self.nets = torch.nn.ModuleList([Polynomial22(d_in=d_in, d_out=1) for i in range(d_out)])
+
+    def shift_and_normalize(self, mean_list, var_list) :
+        for i in range(self.d_out) :
+            self.nets[i].shift_and_normalize(mean_list[i], var_list[i]) 
 
     def forward(self, x):
         return torch.cat([self.nets[i](x) for i in range(self.d_out)], dim=1)

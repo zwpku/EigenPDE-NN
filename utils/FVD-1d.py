@@ -46,14 +46,15 @@ for i in range(0, nx):
         # Centers of two adjoint cells on the left side
         x0 = xmin + (i-0.5) * dx
         x1 = xmin + i * dx
-        mat_a[i][i-1] = -exp( beta * 0.5 * (PotClass.V(x0) + PotClass.V(x) - 2 * PotClass.V(x1)) ) / (beta * dx**2)
-        mat_a[i][i] = exp( beta * (PotClass.V(x) - PotClass.V(x1)) ) / (beta * dx**2)
+        mat_a[i][i-1] = -exp( beta * 0.5 * (PotClass.V(np.array(x0).reshape(1,1)) +
+            PotClass.V(np.array(x).reshape(1,1)) - 2 * PotClass.V(np.array(x1).reshape(1,1))) ) / (beta * dx**2)
+        mat_a[i][i] = exp( beta * (PotClass.V(np.array(x).reshape(1,1)) - PotClass.V(np.array(x1).reshape(1,1)) ) ) / (beta * dx**2)
     if i < nx-1:     
         # Centers of two adjoint cells on the right side
         x0 = xmin + (i+1.5) * dx
         x1 = xmin + (i+1) * dx
-        mat_a[i][i+1] = -exp( beta * 0.5 * (PotClass.V(x0) + PotClass.V(x) - 2 * PotClass.V(x1)) ) / (beta * dx**2)
-        mat_a[i][i] = mat_a[i][i] + exp( beta * (PotClass.V(x) - PotClass.V(x1)) ) / (beta * dx**2)
+        mat_a[i][i+1] = -exp( beta * 0.5 * (PotClass.V(np.array(x0).reshape(1,1)) + PotClass.V(np.array(x).reshape(1,1)) - 2 * PotClass.V( np.array(x1).reshape(1,1))) ) / (beta * dx**2)
+        mat_a[i][i] = mat_a[i][i] + exp( beta * (PotClass.V(np.array(x).reshape(1,1)) - PotClass.V(np.array(x1).reshape(1,1)) ) ) / (beta * dx**2)
 
 # Solve the (conjugated) eigenvalue problem.
 # This function will return all eigenpairs, in ascending order
@@ -70,7 +71,7 @@ for idx in range(ev_num):
     print("\n%dth eigen function is stored to:\n\t%s" % (idx, eigen_file_name))
 
     # Transform back the (unconjugated) eigenvectors 
-    yvec = [(exp(0.5*beta * PotClass.V(xmin + (i+0.5)*dx)) * vv[i][idx]) for i in range(nx)]
+    yvec = [(exp(0.5*beta * PotClass.V(np.array(xmin + (i+0.5)*dx).reshape(1,1))) * vv[i][idx]) for i in range(nx)]
     eigen_file_name = "./data/%s_FVD_%d.txt" % (eig_file_name_prefix, idx)
     # Normalize, then save
     np.savetxt(eigen_file_name, yvec / (norm(yvec) * math.sqrt(dx)), header='%f %f %d\n' % (xmin,xmax,nx), comments="", fmt="%.10f")

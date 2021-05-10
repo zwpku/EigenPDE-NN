@@ -5,9 +5,6 @@ from numpy import *
 import matplotlib.cm as cm
 from common import *
 
-with_FVD_solution = False 
-#with_FVD_solution = True
-
 if all_eig_flag :
     idx_vec = range(1, num_k+1)
     tot_num_k = num_k

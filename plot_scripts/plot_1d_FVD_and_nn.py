@@ -6,9 +6,6 @@ import numpy as np
 import math
 from common import *
 
-#with_FVD_solution = False
-with_FVD_solution = True
-
 if dim != 1 : 
     print ("Error: can not plot 1d data (dim=%d)" % dim)
     sys.exit()
@@ -37,9 +34,9 @@ if with_FVD_solution :
         plt.plot(xvec, sol_by_FVD, color=lc[idx], label=r'$FVD, idx=%d$' % (idx_vec[idx]) )
 
 sign_list = [1 for i in range(tot_num_k)]
-sign_list[0] = -1
+sign_list[0] = 1
 if len(sign_list) > 1 :
-    sign_list[1] = 1
+    sign_list[1] = -1
 
 for idx in range(len(idx_vec)) :
     base_name = '../%s/data/%s' % (working_dir_name, eig_file_name_prefix)

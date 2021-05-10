@@ -20,7 +20,8 @@ if dim == 1 :
     xmax = Param.xmax
     nx = Param.nx
     dx = (xmax - xmin) / nx
-    xvec = np.linspace(xmin, xmax, nx).reshape(1, -1)
+    xvec = np.linspace(xmin, xmax, nx).reshape(-1, 1)
+    print (xvec.shape)
     pot_vec = PotClass.V(xvec) 
     pot_filename = './data/pot.txt'
     np.savetxt(pot_filename, np.reshape(pot_vec, nx), header='%f %f %d\n' % (xmin,xmax,nx), comments="", fmt="%.10f")

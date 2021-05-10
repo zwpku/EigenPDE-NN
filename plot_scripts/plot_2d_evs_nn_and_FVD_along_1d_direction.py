@@ -6,9 +6,6 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.cm as cm
 from common import *
 
-with_FVD_solution = False 
-#with_FVD_solution = True
-
 direction_vec = ['x', 'y', 'r']
 xaxis_name = ['y', 'x', 'theta']
 #0 : along x
