@@ -14,6 +14,11 @@ class Param:
         self.delta_t = config['sample_data'].getfloat('delta_t')
         # K: total numbers of states
         self.K = int(config['sample_data'].getfloat('N_state'))
+        # Coefficient under which the data is sampled. 
+        # Using biased data (reweighting) are used when 
+        # it is different from the value of beta.
+        self.SDE_beta = config['sample_data'].getfloat('SDE_beta')
+
         # Inverse temperature. 
         self.beta = config['default'].getfloat('beta')
 

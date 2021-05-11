@@ -36,7 +36,7 @@ if with_FVD_solution :
 sign_list = [1 for i in range(tot_num_k)]
 sign_list[0] = -1
 if len(sign_list) > 1 :
-    sign_list[1] = -1
+    sign_list[1] = 1
 
 for idx in range(len(idx_vec)) :
     base_name = '../%s/data/%s' % (working_dir_name, eig_file_name_prefix)
