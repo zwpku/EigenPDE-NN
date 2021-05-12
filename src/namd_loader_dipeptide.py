@@ -78,7 +78,7 @@ class namd_data_loader() :
         print ('Plot of 2d weight data saved to: %s\n' % filename)
 
     # Compute weights for each sampled data
-    def weights_of_colvars_by_pmf(self, K) :
+    def weights_of_colvars_by_pmf(self) :
         # First, read PMF (Potential of Mean Force) on grid of angles
         colvar_pmf_filenanme = '%s/%s.pmf' % (self.namd_data_path, self.namd_data_filename_prefix)
         fp = open(colvar_pmf_filenanme)
@@ -111,10 +111,6 @@ class namd_data_loader() :
         # Read values of colvars trajectory 
         angles = np.loadtxt(colvar_pmf_filenanme, skiprows=4)
 
-        assert angles.shape[0] == K, \
-                "colvars trajectoy (length=%d) does match trajectory data  \
-                (length=%d) " % (angles.shape[0], K)
-
         """
         # Then, compute angle values along trajectory data
         print ('[Info] Compute dihedral angles (this step might be slow)\n')
@@ -127,15 +123,17 @@ class namd_data_loader() :
         theta_angles = calc_dihedrals(traj_data[:,1,:], traj_data[:,2,:], traj_data[:,3,:], traj_data[:,4,:])
         """
 
+        K_angle = angles.shape[0] 
+
         # Compute 2d indices of angles 
-        angle_idx = [[int ((angles[i][1] - lbx) / dx), int ((angles[i][2] - lby) / dy)] for i in range(K)]
+        angle_idx = [[int ((angles[i][1] - lbx) / dx), int ((angles[i][2] - lby) / dy)] for i in range(K_angle)]
 
         # Make sure indices are within range
-        for i in range(K):
+        for i in range(K_angle):
             angle_idx[i] = [min(numx-1, angle_idx[i][0]), min(numy-1, angle_idx[i][1])]
 
         # Obtain PMF for data according to indices on the grid 
-        pmf_along_colvars = np.array([pmf_on_angle_mesh[angle_idx[i][0]][angle_idx[i][1]] for i in range(K)])
+        pmf_along_colvars = np.array([pmf_on_angle_mesh[angle_idx[i][0]][angle_idx[i][1]] for i in range(K_angle)])
         # For test purpose
         print ('\tAngles of first 2 states:\n\t', angles[0:2,1], angles[0:2, 2])
 
@@ -143,7 +141,7 @@ class namd_data_loader() :
         weights_along_colvars = np.exp(-self.beta * pmf_along_colvars)
 
         # Rescale weights by constant 
-        rescale = np.sum(weights_along_colvars) / K
+        rescale = np.sum(weights_along_colvars) / K_angle
         weights_along_colvars /= rescale
 
         print ('Length of pmf data along trajectory: %s\n\tmin-max of pmf=(%.3f, %.3f)' % (len(pmf_along_colvars), min(pmf_along_colvars), max(pmf_along_colvars)) )
@@ -216,10 +214,13 @@ class namd_data_loader() :
             print("[Info] Load PMF along states\n", flush=True)
 
             # Compute weights along trajectory according to PMF value of angles
-            angle_data, weights = self.weights_of_colvars_by_pmf(K_total) 
+            angle_data, weights = self.weights_of_colvars_by_pmf() 
 
             # Plot PMF on angle mesh
             self.plot_angle_and_weight_on_grid(angle_data, weights)
+
+            if self.which_data_to_use != 'angle' and angle_data.shape[0] != K_total :
+                "colvars trajectoy (length=%d) does not match trajectory data (length=%d) " % (angles.shape[0], K)
         else :
             print("[Info] Since data are unbiased, all weights are 1\n", flush=True)
             angle_data = None
@@ -230,22 +231,22 @@ class namd_data_loader() :
 
         print ( '[Info] Loading trajectory data...\n\tNames of %d selected atoms:\n\t %s\n\tNames of angle-related atoms:\n\t %s\n' % (atom_num, selected_atoms.names, selected_atoms.names[angle_col_index]) )
 
-        # This is a 3d vector
-        traj_data = np.array([selected_atoms.positions for ts in u.trajectory])
-
-        # Actual length of data (should be the same as K_total above)
-        K = traj_data.shape[0]
-
-        print("[Info] In total, %d states have been loaded\n" % K, flush=True)
-
-
         # Save trajectory data to txt file
         states_file_name = './data/%s.txt' % (self.data_filename_prefix)
         if self.which_data_to_use == 'angle' : 
             # Use angle data (dim=2)
-            np.savetxt(states_file_name, np.concatenate((angle_data, weights.reshape((K,1))), axis=1), header='%d %d' % (K,2), comments="", fmt="%.10f")
+            np.savetxt(states_file_name, np.concatenate((angle_data / 180.0 * math.pi, weights.reshape((-1,1))), axis=1), header='%d %d' % (angle_data.shape[0],2), comments="", fmt="%.10f")
         else : 
+            # This is a 3d vector
+            traj_data = np.array([selected_atoms.positions for ts in u.trajectory])
+
+            # Actual length of data (should be the same as K_total above)
+            K = traj_data.shape[0]
+
+            print("[Info] In total, %d states have been loaded\n" % K, flush=True)
+
             # Use trajectory data of selected atoms 
             np.savetxt(states_file_name, np.concatenate((traj_data.reshape((-1, atom_num * 3)), weights.reshape((K,1))), axis=1), header='%d %d' % (K, 3 * atom_num), comments="", fmt="%.10f")
 
         print("Sampled data are stored to: %s" % states_file_name)
+

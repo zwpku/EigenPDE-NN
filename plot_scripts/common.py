@@ -1,13 +1,13 @@
 import configparser
 
-working_dir_list = ['working_dir_2d', 'working_dir_2d_MetastableRadius_test', 'working_dir_5d_MetastableRadius', 'working_dir_20d_MetastableRadius', 'working_dir_40d_MetastableRadius_newpot', 'working_dir_100d_MetastableRadius', 'working_dir_100d_MetastableRadius_dist']
+working_dir_list = ['working_dir_2d', 'working_dir_namd', 'working_dir_2d_MetastableRadius_test', 'working_dir_5d_MetastableRadius', 'working_dir_20d_MetastableRadius', 'working_dir_40d_MetastableRadius_newpot', 'working_dir_100d_MetastableRadius', 'working_dir_100d_MetastableRadius_dist']
 task_name_list = ['2D metastable', '100Dim, metastable in x_1 and x_2', '100Dim, metastable in x_1 and x_2', '100Dim, metastable in x_1 and x_2', '100Dim, metastable in x_1 and x_2']
 
-task_id = 0
+task_id = 1
 conjugated_eigvec_flag = 0
 
-#with_FVD_solution = False
-with_FVD_solution = True
+with_FVD_solution = False
+#with_FVD_solution = True
 
 working_dir_name = working_dir_list[task_id]
 task_name = task_name_list[task_id]

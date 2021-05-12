@@ -132,9 +132,9 @@ class eigen_solver():
 
             assert len(mass_vec) == self.dim, "length of mass array (%d) does not match the dimension (%d)!" % (len(mass_vec), self.dim)
 
-            # This is the friction coefficients, multiplied by the constant # # 418.4 * 1000, 
+            # This is the friction coefficients, multiplied by the constant 418.4 * 1000, 
             # such that the unit of eigenvalues given by Rayleigh quotients is ns^{-1}.
-            self.diag_coeff = torch.from_numpy(418.4 * 1e3 / Param.damping_coeff * np.reciprocal(mass_vec))
+            self.diag_coeff = torch.from_numpy(418.4 * 1e0 / Param.damping_coeff * np.reciprocal(mass_vec))
         else :
             self.diag_coeff = torch.ones(self.dim).double()
 
