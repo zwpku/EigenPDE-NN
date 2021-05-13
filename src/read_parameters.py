@@ -112,8 +112,7 @@ class Param:
         if self.namd_data_flag == True : 
             self.temp_T = config['NAMD'].getfloat('temperature')
             self.damping_coeff = config['NAMD'].getfloat('damping_coeff')
-            self.pdb_path = config['NAMD'].get('pdb_path')
-            self.pdb_prefix = config['NAMD'].get('pdb_prefix')
+            self.psf_name = config['NAMD'].get('psf_name')
             self.which_data_to_use = config['NAMD'].get('which_data_to_use')
             self.use_biased_data = config['NAMD'].getboolean('use_biased_data')
             self.align_data_flag = config['NAMD'].getboolean('align_data_flag')

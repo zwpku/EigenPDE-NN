@@ -13,8 +13,7 @@ class namd_data_loader() :
     def __init__(self, Param) :
 
         # Initialize parameters  
-        self.pdb_path = Param.pdb_path
-        self.pdb_prefix = Param.pdb_prefix
+        self.psf_name = Param.psf_name
 
         self.which_data_to_use = Param.which_data_to_use
         self.use_biased_data = Param.use_biased_data
@@ -59,7 +58,7 @@ class namd_data_loader() :
 
         fig, ax = plt.subplots(1,1)
         # Show the angle counting data in 2d plot
-        h = ax.imshow(angle_counter.T, extent=[-180,180, -180, 180], cmap='jet', origin='lower')
+        h = ax.imshow(angle_counter.T, extent=[-180,180, -180, 180], cmap='jet', origin='lower', vmax=10)
         plt.colorbar(h)
 
         filename = './fig/count_of_angles.eps' 
@@ -80,7 +79,7 @@ class namd_data_loader() :
     # Compute weights for each sampled data
     def weights_of_colvars_by_pmf(self) :
         # First, read PMF (Potential of Mean Force) on grid of angles
-        colvar_pmf_filenanme = '%s/%s.pmf' % (self.namd_data_path, self.namd_data_filename_prefix)
+        colvar_pmf_filenanme = '%s/%so.pmf' % (self.namd_data_path, self.namd_data_filename_prefix)
         fp = open(colvar_pmf_filenanme)
 
         # The first line is not useful
@@ -105,11 +104,11 @@ class namd_data_loader() :
         # Read PMF data on mesh of angles 
         pmf_on_angle_mesh = np.loadtxt(colvar_pmf_filenanme)[:,2].reshape([numx, numy])
 
-        colvar_pmf_filenanme = '%s/%s.colvars.traj' % (self.namd_data_path, self.namd_data_filename_prefix)
+        colvar_pmf_filenanme = '%s/%so.colvars.traj' % (self.namd_data_path, self.namd_data_filename_prefix)
         fp = open(colvar_pmf_filenanme)
 
         # Read values of colvars trajectory 
-        angles = np.loadtxt(colvar_pmf_filenanme, skiprows=4)
+        angles = np.loadtxt(colvar_pmf_filenanme, skiprows=2)
 
         """
         # Then, compute angle values along trajectory data
@@ -135,7 +134,8 @@ class namd_data_loader() :
         # Obtain PMF for data according to indices on the grid 
         pmf_along_colvars = np.array([pmf_on_angle_mesh[angle_idx[i][0]][angle_idx[i][1]] for i in range(K_angle)])
         # For test purpose
-        print ('\tAngles of first 2 states:\n\t', angles[0:2,1], angles[0:2, 2])
+        print ('\tAngles of first 2 states:\n\t', angles[0:2,:])
+        print ('\tAngles of last 2 states:\n\t', angles[-2:,:])
 
         # Compute weights using PMF
         weights_along_colvars = np.exp(-self.beta * pmf_along_colvars)
@@ -146,7 +146,7 @@ class namd_data_loader() :
 
         print ('Length of pmf data along trajectory: %s\n\tmin-max of pmf=(%.3f, %.3f)' % (len(pmf_along_colvars), min(pmf_along_colvars), max(pmf_along_colvars)) )
 
-        print ('\t(min,max,sum) of weights=(%.3f, %.3f, %.3f)' % (min(weights_along_colvars), max(weights_along_colvars), sum(weights_along_colvars) ) )
+        print ('\t(min,max,sum) of weights=(%.3e, %.3e, %.3e)' % (min(weights_along_colvars), max(weights_along_colvars), sum(weights_along_colvars) ) )
 
         return angles[:,1:], weights_along_colvars
 
@@ -154,9 +154,9 @@ class namd_data_loader() :
     def save_namd_data_to_txt(self):
 
         # Names of files containing trajectory data
-        pdb_filename = '%s/%s.psf' % (self.pdb_path, self.pdb_prefix)
+        psf_filename = '%s/%s.psf' % (self.namd_data_path, self.psf_name)
         traj_filename = '%s/%s.dcd' % (self.namd_data_path, self.namd_data_filename_prefix)
-        u = mda.Universe(pdb_filename, traj_filename)
+        u = mda.Universe(psf_filename, traj_filename)
 
         # Length of trajectory 
         K_total = len(u.trajectory)
@@ -164,11 +164,12 @@ class namd_data_loader() :
 
         total_time_traj = len(u.trajectory) * u.coord.dt * 1e-3 
 
-        print ( 'length of trajectory: %d, dt=%.2fps, total time = %.2fns\n' % (len(u.trajectory), u.coord.dt, total_time_traj) )
+        print ( 'Length of trajectory: %d, dt=%.2fps, total time = %.2fns\n' % (len(u.trajectory), u.coord.dt, total_time_traj) )
+        print ("Time range of the trajectory: [%.4f, %.4f]\n" % (u.trajectory[0].time, u.trajectory[-1].time) )
 
         if self.align_data_flag == True : 
             # Align states by tranforming coordinates (e.g. rotation, translation...)
-            ref = mda.Universe(pdb_filename, traj_filename)
+            ref = mda.Universe(psf_filename, traj_filename)
             ag = u.select_atoms('all')
             transform = mda.transformations.fit_rot_trans(ag, ref) 
             u.trajectory.add_transformations(transform)
@@ -182,17 +183,17 @@ class namd_data_loader() :
         if self.which_data_to_use == 'all' : 
             # Select all atoms
             selected_atoms = u.select_atoms("all")
-            # Names of atoms related to dihedral angles are CY, N, CA, C, NT.
+            # Names of atoms related to dihedral angles are C, NT, CY, N, CA.
             # Indices of these 5 atoms among selected atoms
-            angle_col_index = [4, 6, 8, 14, 16]
+            angle_col_index = [0, 2, 12, 14, 16]
         elif self.which_data_to_use == 'nonh' : 
             # Select all atoms expect hydron (counting starts from 1)
-            selected_atoms = u.select_atoms("bynum 1 5 6 7 9 11 15 16 17 19")
+            selected_atoms = u.select_atoms("bynum 1 2 3 5 9 13 14 15 17 19")
             # Indices of the 5 atoms (see above) among selected atoms
-            angle_col_index = [1, 3, 4, 6, 8]
+            angle_col_index = [0, 2, 5, 7, 8]
         else : 
             # If which_data_to_use = 'angle_atoms' or 'angle', only include atoms related to two dihedral angles
-            selected_atoms = u.select_atoms("bynum 5 7 9 15 17")
+            selected_atoms = u.select_atoms("bynum 1 3 13 15 17")
             # Indices of the 5 atoms (see above) among selected atoms
             angle_col_index = [0, 1, 2, 3, 4]
 
@@ -220,7 +221,7 @@ class namd_data_loader() :
             self.plot_angle_and_weight_on_grid(angle_data, weights)
 
             if self.which_data_to_use != 'angle' and angle_data.shape[0] != K_total :
-                "colvars trajectoy (length=%d) does not match trajectory data (length=%d) " % (angles.shape[0], K)
+                "colvars trajectoy (length=%d) does not match trajectory data (length=%d) " % (angle_data.shape[0], K_total)
         else :
             print("[Info] Since data are unbiased, all weights are 1\n", flush=True)
             angle_data = None
