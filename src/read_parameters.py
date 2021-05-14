@@ -118,6 +118,7 @@ class Param:
             self.align_data_flag = config['NAMD'].getboolean('align_data_flag')
             self.namd_data_filename_prefix = config['NAMD'].get('namd_data_filename_prefix')
             self.namd_data_path = config['NAMD'].get('namd_data_path')
+            self.namd_validation_data_path = config['NAMD'].get('namd_validation_data_path')
 
             # Physical quantities 
             # Boltzmann constant (unit: kcal/(mol*K)). We use the same value as in NAMD.
