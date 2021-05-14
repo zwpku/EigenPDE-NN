@@ -79,8 +79,8 @@ class namd_data_loader() :
     # Compute weights for each sampled data
     def weights_of_colvars_by_pmf(self) :
         # First, read PMF (Potential of Mean Force) on grid of angles
-        colvar_pmf_filenanme = '%s/%so.pmf' % (self.namd_data_path, self.namd_data_filename_prefix)
-        fp = open(colvar_pmf_filenanme)
+        colvar_pmf_filename = '%s/%so.pmf' % (self.namd_data_path, self.namd_data_filename_prefix)
+        fp = open(colvar_pmf_filename)
 
         # The first line is not useful
         ch, num = fp.readline().split()
@@ -102,13 +102,17 @@ class namd_data_loader() :
         print ('2d grid mesh for angles:\n\t[%.2f, %.2f], nx=%d\n\t[%.2f, %.2f], ny=%d' % (lbx, lbx + numx * dx, numx, lby, lby + numx * dy, numy))
 
         # Read PMF data on mesh of angles 
-        pmf_on_angle_mesh = np.loadtxt(colvar_pmf_filenanme)[:,2].reshape([numx, numy])
+        pmf_on_angle_mesh = np.loadtxt(colvar_pmf_filename)[:,2].reshape([numx, numy])
 
-        colvar_pmf_filenanme = '%s/%so.colvars.traj' % (self.namd_data_path, self.namd_data_filename_prefix)
-        fp = open(colvar_pmf_filenanme)
+        colvar_pmf_filename = '%s/%so.colvars.traj' % (self.namd_data_path, self.namd_data_filename_prefix)
+        fp = open(colvar_pmf_filename)
 
         # Read values of colvars trajectory 
-        angles = np.loadtxt(colvar_pmf_filenanme, skiprows=2)
+        angles = np.loadtxt(colvar_pmf_filename, skiprows=2)
+
+        # Save angles of states along trajectory
+        angle_output_file = './data/angle_along_traj.txt' 
+        np.savetxt(angle_output_file, angles[:, 1:], header='%d' % (angles.shape[0]), comments="", fmt="%.10f")
 
         """
         # Then, compute angle values along trajectory data
