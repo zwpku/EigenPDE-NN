@@ -16,7 +16,7 @@ else :
     tot_num_k = 1
 
 fig, ax = plt.subplots(1, tot_num_k, figsize=(12, 5.5))
-fig.suptitle('Eigenfunctions by NN, %s' % task_name)
+#fig.suptitle('Eigenfunctions by NN, %s' % task_name)
 
 print (tot_num_k, idx_vec)
 
@@ -33,9 +33,9 @@ for i in range(len(idx_vec)) :
       nn_ax = ax[i]
   else :
       nn_ax = ax
-  sc = nn_ax.scatter(eigenfun_data[:,0], eigenfun_data[:,1], c=eigenfun_data[:,2] , vmin=-4.5, vmax=1.1)
+  sc = nn_ax.scatter(eigenfun_data[:,0], eigenfun_data[:,1], s=1, c=eigenfun_data[:,2] , vmin=-2.5, vmax=3.0)
 
-  nn_ax.set_title('%dth eigenfunction' % (idx_vec[i]) )
+  nn_ax.set_title('%dth eigenfunction' % (idx_vec[i]) , fontsize=20)
 
 if num_k > 1 :
     for i in range(len(idx_vec)) : 
@@ -58,7 +58,7 @@ if all_eig_flag :
 
 fig_name = '%s_%d.eps' % (base_name, num_k)
 
-savefig(fig_name)
+savefig(fig_name, dpi=150)
 
 print ("output figure: %s" % fig_name)
 
