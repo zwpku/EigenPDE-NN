@@ -15,7 +15,7 @@ else :
     idx_vec = [num_k]
     tot_num_k = 1
 
-fig, ax = plt.subplots(1, tot_num_k, figsize=(12, 5.5))
+fig, ax = plt.subplots(1, tot_num_k, figsize=(14, 5.5))
 #fig.suptitle('Eigenfunctions by NN, %s' % task_name)
 
 print (tot_num_k, idx_vec)
@@ -44,21 +44,25 @@ if num_k > 1 :
       ax[i].tick_params(axis='x', labelsize=18, pad=1.5)
       ax[i].tick_params(axis='y', labelsize=18, pad=0.0)
       ax[i].set_xlabel(r'$\phi$', fontsize=20, labelpad=-1, rotation=0)
-      if i == 0 : 
-          ax[i].set_ylabel(r'$\psi$', fontsize=20, labelpad=-10, rotation=0)
+      ax[i].set_xticks([-150, -100, -50, 0, 50, 100, 150])
+      ax[i].set_yticks([-150, -100, -50, 0, 50, 100, 150])
+
+      ax[i].set_ylabel(r'$\psi$', fontsize=20, labelpad=-10, rotation=0)
 
 cax = fig.add_axes([0.92, 0.12, .02, 0.79])
 #fig.colorbar(cax=cax, orientation='horizontal',cmap=cm.jet)
-fig.colorbar(sc, cax=cax)
+cbar = fig.colorbar(sc, cax=cax)
+cbar.ax.tick_params(labelsize=17)
+
 #cax.tick_params(labelsize=10)
 
 base_name = '../%s/fig/scatter_nn_angle' % (working_dir_name)
 if all_eig_flag :
     base_name = '%s_all' % base_name 
 
-fig_name = '%s_%d.eps' % (base_name, num_k)
+fig_name = '%s_%d.pdf' % (base_name, num_k)
 
-savefig(fig_name, dpi=150)
+savefig(fig_name, dpi=200, bbox_inches='tight')
 
 print ("output figure: %s" % fig_name)
 
