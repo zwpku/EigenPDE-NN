@@ -163,6 +163,7 @@ class namd_data_loader() :
     def load_namd_traj(self):
         # Names of files containing trajectory data
         psf_filename = '%s/%s.psf' % (self.namd_data_path, self.psf_name)
+        pdb_filename = '%s/%s.pdb' % (self.namd_data_path, self.psf_name)
         traj_filename = '%s/%s.dcd' % (self.namd_data_path, self.namd_data_filename_prefix)
         u = mda.Universe(psf_filename, traj_filename)
 
@@ -175,14 +176,6 @@ class namd_data_loader() :
         print ( 'Length of trajectory: %d, dt=%.2fps, total time = %.2fns\n' % (len(u.trajectory), u.coord.dt, total_time_traj) )
         print ("Time range of the trajectory: [%.4f, %.4f]\n" % (u.trajectory[0].time, u.trajectory[-1].time) )
 
-        if self.align_data_flag == True : 
-            # Align states by tranforming coordinates (e.g. rotation, translation...)
-            ref = mda.Universe(psf_filename, traj_filename)
-            ag = u.select_atoms('all')
-            transform = mda.transformations.fit_rot_trans(ag, ref) 
-            u.trajectory.add_transformations(transform)
-            print("[Info] Aligning data...done.", flush=True)
-
         self.selected_atoms = None
         angle_col_index = None
 
@@ -190,20 +183,31 @@ class namd_data_loader() :
         #This will be changed in future.
         if self.which_data_to_use == 'all' : 
             # Select all atoms
-            self.selected_atoms = u.select_atoms("all")
+            select_argument = "all"
             # Names of atoms related to dihedral angles are C, NT, CY, N, CA.
             # Indices of these 5 atoms among selected atoms
             angle_col_index = [0, 2, 12, 14, 16]
         elif self.which_data_to_use == 'nonh' : 
             # Select all atoms expect hydron (counting starts from 1)
-            self.selected_atoms = u.select_atoms("bynum 1 2 3 5 9 13 14 15 17 19")
+            select_argument = "bynum 1 2 3 5 9 13 14 15 17 19"
             # Indices of the 5 atoms (see above) among selected atoms
             angle_col_index = [0, 2, 5, 7, 8]
         else : 
             # If which_data_to_use = 'angle_atoms' or 'angle', only include atoms related to two dihedral angles
-            self.selected_atoms = u.select_atoms("bynum 1 3 13 15 17")
+            select_argument = "bynum 1 3 13 15 17"
             # Indices of the 5 atoms (see above) among selected atoms
             angle_col_index = [0, 1, 2, 3, 4]
+
+        self.selected_atoms = u.select_atoms(select_argument)
+
+        if self.align_data_flag == True : 
+            # Align states by tranforming coordinates (e.g. rotation, translation...)
+            #ref = mda.Universe(psf_filename, traj_filename)
+            ref = mda.Universe(pdb_filename).select_atoms(select_argument)
+            #transform = mda.transformations.fit_rot_trans(ag, ref) 
+            transform = mda.transformations.fit_translation(self.selected_atoms, ref) 
+            u.trajectory.add_transformations(transform)
+            print("[Info] Aligning data...done.", flush=True)
 
         if self.use_biased_data == True : 
         
@@ -225,6 +229,8 @@ class namd_data_loader() :
 
         # Change the 3d vector to 2d vector
         self.traj_data = np.array([self.selected_atoms.positions for ts in u.trajectory]).reshape((-1, self.atom_num * 3))
+
+        print ("min, max, and mean of components: \n", np.min(self.traj_data, axis=0), np.max(self.traj_data, axis=0), np.mean(self.traj_data, axis=0) )
 
     def load_all(self):
 
