@@ -232,15 +232,26 @@ class eigen_solver():
                 des.state_dict()[param_tensor].add_(src.state_dict()[param_tensor].detach())
 
     # Perform the following operations on coefficients of neural networks :
-    # 1) Compute mean of averaged model from accumulated sum, 
+    # 1) Compute mean and variance of averaged model on full sample data
     # 2) Shift mean value, 
-    # 3) Normalize
+    # 3) Normalize 
     def update_averaged_model(self, num):
         # Step 1 
         for param in self.averaged_model.parameters():
             param /= num
+
+        # Evaluate function value on full data
+        y = self.model(self.X_vec).detach()
+
+        # Total weights, will be used for normalization 
+        b_tot_weights = self.weights.sum()
+
+        # Mean and variance evaluated on data
+        mean_of_nn = [(y[:,idx] * self.weights).sum() / b_tot_weights for idx in range(self.k)]
+        var_of_nn = [(y[:,idx]**2 * self.weights).sum() / b_tot_weights - mean_of_nn[idx]**2 for idx in range(self.k)]
+
         # Step 2 and 3
-        self.averaged_model.shift_and_normalize(self.mean_of_nn, self.var_of_nn) 
+        self.averaged_model.shift_and_normalize(mean_of_nn, var_of_nn) 
 
     """ 
       Model parameter (or gradient) averaging;
@@ -541,10 +552,6 @@ class eigen_solver():
                 # Reset parameters of averaged_model to zero
                 self.zero_model_parameters(self.averaged_model)
 
-                # Mean and variance of functions represented by neuron networks
-                self.mean_of_nn = torch.zeros(self.k, requires_grad=False).double()
-                self.var_of_nn = torch.zeros(self.k, requires_grad=False).double()
-
                 # Distribute batch size to each processor
                 if self.distributed_training :
                     bsz_local = bsz // self.size
@@ -583,10 +590,6 @@ class eigen_solver():
 
             self.record_model_parameters(self.averaged_model, self.model, cvec)
 
-            # Record mean/var of the current step
-            self.mean_of_nn += torch.tensor(self.mean_list).detach()
-            self.var_of_nn += torch.tensor(self.var_list).detach()
-
             # Print information, if we are at the end of each stage 
             if self.rank == 0 and i + 1 == self.stage_list[stage_index] :
 
@@ -605,10 +608,6 @@ class eigen_solver():
                         var_eig_vals[ii] = var_eig_vals[ii] / tot_step_in_stage - mean_eig_vals[ii]**2
                         print ('  %dth eig:  mean=%.4f, var=%.4f' % (ii+1, mean_eig_vals[ii], math.sqrt(var_eig_vals[ii])) )
 
-                 # Compute mean from accumulated sum of different steps
-                self.mean_of_nn /= tot_step_in_stage
-                self.var_of_nn /= tot_step_in_stage
-               
                 # Compute mean of averaged model, shift mean value and normalize
                 self.update_averaged_model(tot_step_in_stage)
 

@@ -47,7 +47,8 @@ model.eval()
 print ("Neural network loaded\n")
 
 b_tot_weights = sum(weights) 
-num_test = 5
+
+num_test = 0
 mean_list = np.zeros(num_test)
 var_list = np.zeros(num_test)
 
@@ -56,8 +57,9 @@ for f_idx in range(num_test) :
     mean_list[f_idx] = (test_val * weights).sum() / b_tot_weights 
     var_list[f_idx]  = (test_val**2 * weights).sum() / b_tot_weights - mean_list[f_idx] **2 
 
-print ("Means: ", mean_list) 
-print ("Vars: ", var_list) 
+if num_test > 0 :
+    print ("Means: ", mean_list) 
+    print ("Vars: ", var_list) 
 
 # Evaluate neural network functions at states
 Y_hat_all = model(xvec).detach().numpy()
