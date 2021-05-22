@@ -18,79 +18,27 @@ sys.path.append('../src/')
 
 import potentials 
 import read_parameters 
+import namd_loader_dipeptide
 
-# load sampled MD data from file
-def load_validation_data():
-
-    # Names of files containing trajectory data
-    psf_filename = '%s/%s.psf' % (Param.namd_validation_data_path, Param.psf_name)
-    traj_filename = '%s/%s.dcd' % (Param.namd_validation_data_path, Param.namd_data_filename_prefix)
-    u = mda.Universe(psf_filename, traj_filename)
-
-    # Length of trajectory 
-    K_total = len(u.trajectory)
-    print ("[Info] Data file: %s\n\t%d states in datafile" % (traj_filename, K_total), flush=True)
-
-    total_time_traj = len(u.trajectory) * u.coord.dt * 1e-3 
-
-    print ( 'Length of trajectory: %d, dt=%.2fps, total time = %.2fns\n' % (len(u.trajectory), u.coord.dt, total_time_traj) )
-    print ("Time range of the trajectory: [%.4f, %.4f]\n" % (u.trajectory[0].time, u.trajectory[-1].time) )
-
-    if Param.align_data_flag == True : 
-        # Align states by tranforming coordinates (e.g. rotation, translation...)
-        ref = mda.Universe(psf_filename, traj_filename)
-        ag = u.select_atoms('all')
-        transform = mda.transformations.fit_rot_trans(ag, ref) 
-        u.trajectory.add_transformations(transform)
-        print("[Info] Aligning data...done.", flush=True)
-
-    selected_atoms = None
-    angle_col_index = None
-
-    #Note: the indices are hard-coded, and depend on the psf file.
-    #This will be changed in future.
-    if Param.which_data_to_use == 'all' : 
-        # Select all atoms
-        selected_atoms = u.select_atoms("all")
-        # Names of atoms related to dihedral angles are C, NT, CY, N, CA.
-        # Indices of these 5 atoms among selected atoms
-        angle_col_index = [0, 2, 12, 14, 16]
-    elif Param.which_data_to_use == 'nonh' : 
-        # Select all atoms expect hydron (counting starts from 1)
-        selected_atoms = u.select_atoms("bynum 1 2 3 5 9 13 14 15 17 19")
-        # Indices of the 5 atoms (see above) among selected atoms
-        angle_col_index = [0, 2, 5, 7, 8]
-    else : 
-        # If which_data_to_use = 'angle_atoms' or 'angle', only include atoms related to two dihedral angles
-        selected_atoms = u.select_atoms("bynum 1 3 13 15 17")
-        # Indices of the 5 atoms (see above) among selected atoms
-        angle_col_index = [0, 1, 2, 3, 4]
-
-    # Number of selected atoms
-    atom_num = len(selected_atoms.names)
-
-    traj_data = np.array([selected_atoms.positions for ts in u.trajectory]).reshape((-1, atom_num * 3))
-    # Actual length of data (should be the same as K_total above)
-    K = traj_data.shape[0]
-    print ("[Info] load data: %d states, dim=%d" % (K, 3 * atom_num), flush=True)
-
-    colvar_pmf_filename = '%s/%so.colvars.traj' % (Param.namd_validation_data_path, Param.namd_data_filename_prefix)
-    fp = open(colvar_pmf_filename)
-
-    # Read values of colvars trajectory 
-    angles = np.loadtxt(colvar_pmf_filename, skiprows=2)
-    print ("[Info] angles of %d states loaded" % angles.shape[0])
-
-    return K_total, torch.from_numpy(traj_data).double(), angles
+def f_on_angle(xvec, angle, idx) :
+    angle = angle / 180 * pi 
+    #return angle[:,0] + idx * angle[:,1]
+    return xvec[:, 0] + idx * xvec[:,1]
 
 Param = read_parameters.Param()
+
+namd_loader = namd_loader_dipeptide.namd_data_loader(Param, True) 
+xvec, angles, weights = namd_loader.load_all()
+
+xvec = torch.from_numpy(xvec).double()
+K = xvec.shape[0]
+
+print ("Length of Trajectory: %d\n" % K)
 
 k = Param.k
 
 # File name 
 eig_file_name_prefix = Param.eig_file_name_prefix
-
-K, xvec, angles = load_validation_data()
 
 # Load trained neural network
 file_name = './data/%s.pt' % (eig_file_name_prefix)
@@ -98,14 +46,33 @@ model = torch.load(file_name)
 model.eval()
 print ("Neural network loaded\n")
 
+b_tot_weights = sum(weights) 
+num_test = 5
+mean_list = np.zeros(num_test)
+var_list = np.zeros(num_test)
+
+for f_idx in range(num_test) :
+    test_val = f_on_angle(xvec, angles, f_idx).numpy()
+    mean_list[f_idx] = (test_val * weights).sum() / b_tot_weights 
+    var_list[f_idx]  = (test_val**2 * weights).sum() / b_tot_weights - mean_list[f_idx] **2 
+
+print ("Means: ", mean_list) 
+print ("Vars: ", var_list) 
+
 # Evaluate neural network functions at states
 Y_hat_all = model(xvec).detach().numpy()
 
 if Param.all_k_eigs : # In this case, output the first k eigenfunctions
+    b_tot_weights = sum(weights) 
+    mean_list = [(Y_hat_all[:,idx] * weights).sum() / b_tot_weights for idx in range(k)]
+    var_list = [(Y_hat_all[:,idx]**2 * weights).sum() / b_tot_weights - mean_list[idx]**2 for idx in range(k)]
+
+    print ("Means: ", mean_list) 
+    print ("Vars: ", var_list) 
+
     for idx in range(k):
-        Y_hat = Y_hat_all[:, idx, None] / LA.norm(Y_hat_all[:, idx]) * math.sqrt(K)
         eigen_file_name_output = './data/%s_on_data_all_%d.txt' % (eig_file_name_prefix, idx+1)
-        np.savetxt(eigen_file_name_output, np.concatenate((angles[:,1:], Y_hat), axis=1), header='%d' % K, comments="", fmt="%.10f")
+        np.savetxt(eigen_file_name_output, np.concatenate((angles, Y_hat_all[:, idx, None]), axis=1), header='%d' % K, comments="", fmt="%.10f")
         print("%dth eigen function along is stored to:\n\t%s" % (idx+1, eigen_file_name_output))
 
 else : # Output the kth eigenfunction

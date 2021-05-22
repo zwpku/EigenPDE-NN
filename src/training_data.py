@@ -62,7 +62,7 @@ class PrepareData() :
         if self.Param.namd_data_flag == True :
             # use MD data 
             print ("Generate training data from MD data\n")
-            namd_loader = namd_loader_dipeptide.namd_data_loader(self.Param) 
+            namd_loader = namd_loader_dipeptide.namd_data_loader(self.Param, False) 
             namd_loader.save_namd_data_to_txt()
         else :
             # Sample data by simulating SDE

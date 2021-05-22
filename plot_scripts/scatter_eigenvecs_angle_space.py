@@ -33,7 +33,7 @@ for i in range(len(idx_vec)) :
       nn_ax = ax[i]
   else :
       nn_ax = ax
-  sc = nn_ax.scatter(eigenfun_data[:,0], eigenfun_data[:,1], s=1, c=eigenfun_data[:,2] , vmin=-2.5, vmax=3.0)
+  sc = nn_ax.scatter(eigenfun_data[:,0], eigenfun_data[:,1], s=1, c=eigenfun_data[:,2] , vmin=-5.5, vmax=3.0)
 
   nn_ax.set_title('%dth eigenfunction' % (idx_vec[i]) , fontsize=20)
 
