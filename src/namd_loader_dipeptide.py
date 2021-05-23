@@ -203,12 +203,12 @@ class namd_data_loader() :
         if self.align_data_flag != 'none' : 
             # Align states by tranforming coordinates (e.g. rotation, translation...)
             #ref = mda.Universe(psf_filename, traj_filename)
-            ref = mda.Universe(pdb_filename).select_atoms(select_argument)
+            ref = mda.Universe(pdb_filename).select_atoms("bynum 1 3 13 15 17")
 
             if self.align_data_flag == 'trans' : 
-                transform = mda.transformations.fit_translation(self.selected_atoms, ref) 
+                transform = mda.transformations.fit_translation(u.select_atoms("bynum 1 3 13 15 17"), ref) 
             else :
-                transform = mda.transformations.fit_rot_trans(self.selected_atoms, ref) 
+                transform = mda.transformations.fit_rot_trans(u.select_atoms("bynum 1 3 13 15 17"), ref) 
 
             u.trajectory.add_transformations(transform)
 
