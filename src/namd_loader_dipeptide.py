@@ -200,16 +200,19 @@ class namd_data_loader() :
 
         self.selected_atoms = u.select_atoms(select_argument)
 
-        if self.align_data_flag == True : 
+        if self.align_data_flag != 'none' : 
             # Align states by tranforming coordinates (e.g. rotation, translation...)
             #ref = mda.Universe(psf_filename, traj_filename)
             ref = mda.Universe(pdb_filename).select_atoms(select_argument)
 
-            #transform = mda.transformations.fit_rot_trans(ag, ref) 
-            transform = mda.transformations.fit_translation(self.selected_atoms, ref) 
+            if self.align_data_flag == 'trans' : 
+                transform = mda.transformations.fit_translation(self.selected_atoms, ref) 
+            else :
+                transform = mda.transformations.fit_rot_trans(self.selected_atoms, ref) 
+
             u.trajectory.add_transformations(transform)
 
-            print("[Info] Aligning data...done.", flush=True)
+            print("[Info] Aligning data (%s)...done." % self.align_data_flag, flush=True)
 
         if self.use_biased_data == True : 
         
