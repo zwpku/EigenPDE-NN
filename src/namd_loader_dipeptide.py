@@ -204,9 +204,11 @@ class namd_data_loader() :
             # Align states by tranforming coordinates (e.g. rotation, translation...)
             #ref = mda.Universe(psf_filename, traj_filename)
             ref = mda.Universe(pdb_filename).select_atoms(select_argument)
+
             #transform = mda.transformations.fit_rot_trans(ag, ref) 
             transform = mda.transformations.fit_translation(self.selected_atoms, ref) 
             u.trajectory.add_transformations(transform)
+
             print("[Info] Aligning data...done.", flush=True)
 
         if self.use_biased_data == True : 

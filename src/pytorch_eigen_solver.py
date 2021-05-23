@@ -241,7 +241,7 @@ class eigen_solver():
             param /= num
 
         # Evaluate function value on full data
-        y = self.model(self.X_vec).detach()
+        y = self.averaged_model(self.X_vec).detach()
 
         # Total weights, will be used for normalization 
         b_tot_weights = self.weights.sum()
