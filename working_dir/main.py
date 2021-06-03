@@ -26,21 +26,10 @@ script_info_list = ["Prepare training data",
         "Solve 1D eigenvalue PDE by finite volume method", 
         "Solve 2D eigenvalue PDE by finite volume method"]
 
-task_id = 3
-
-if task_id == 1 :
-    import configparser
-    # Read parameters from config file
-    config = configparser.ConfigParser()
-    config.read_file(open('params.cfg'))
-    # If num_processor > 1, the training will be run in parallel. 
-    # In this case, pytorch with mpi is needed. 
-    num_processor = config['Training'].getint('num_processor')
-    if num_processor > 1 :
-        script_name_list[1] = "mpirun -np %d %s" % (num_processor, script_name_list[1])
+task_id = 1
 
 # Run one of the scripts above
-print ("Task %d: %s, \nCommand: %s\n" % (task_id, script_info_list[task_id], script_name_list[task_id]) )
+print ("Task %d: %s, \nCommand: %s\n" % (task_id, script_info_list[task_id], script_name_list[task_id]), flush=True)
 
 os.system(script_name_list[task_id])
 
