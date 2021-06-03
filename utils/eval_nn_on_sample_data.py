@@ -30,6 +30,8 @@ Param = read_parameters.Param()
 namd_loader = namd_loader_dipeptide.namd_data_loader(Param, True) 
 xvec, angles, weights = namd_loader.load_all()
 
+print ("angle=", angles.shape)
+
 xvec = torch.from_numpy(xvec).double()
 K = xvec.shape[0]
 
@@ -63,6 +65,8 @@ if num_test > 0 :
 
 # Evaluate neural network functions at states
 Y_hat_all = model(xvec).detach().numpy()
+
+print (Y_hat_all.shape)
 
 if Param.all_k_eigs : # In this case, output the first k eigenfunctions
     b_tot_weights = sum(weights) 
