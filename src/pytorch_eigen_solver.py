@@ -11,29 +11,6 @@ import itertools
 
 import network_arch 
 
-class Comm():
-  def __init__(self, distributed_training):
-    if distributed_training : 
-        """
-          Currently we use mpi as backend.
-          It requires to install pytorch with mpi (from source code).
-          The backend can be easily changed to others.
-        """
-        try : 
-            import torch.distributed as dist
-            #from torch.multiprocessing import Process
-            dist.init_process_group('mpi')
-            self.dist = dist 
-            self.rank = self.dist.get_rank()
-            self.size = self.dist.get_world_size()
-        except ImportError: 
-            print ("Cann't import parallel libraries! Re-run with distributed_training=Flase") 
-            sys.exit(1)
-    else : # run sequentially 
-        self.dist = None
-        self.rank = 0
-        self.size = 1
-
 class eigen_solver():
 
     def __init__(self, Param, seed=3214):
@@ -95,21 +72,6 @@ class eigen_solver():
         self.ij_list = list(itertools.combinations(range(Param.k), 2))
         self.num_ij_pairs = len(self.ij_list)
 
-        if Param.num_processor > 1 :
-            self.distributed_training = True 
-            self.distribute_data = Param.distribute_data
-        else :
-            self.distributed_training = False
-            self.distribute_data = False
-
-        MyComm = Comm(self.distributed_training)
-
-        self.dist = MyComm.dist
-        self.rank = MyComm.rank
-        self.size = MyComm.size
-
-        seed += self.rank 
-
         # Set the seed of random number generator 
         random.seed(seed)
         np.random.seed(seed)
@@ -140,32 +102,30 @@ class eigen_solver():
 
         if self.use_Rayleigh_quotient == False and self.use_reduced_2nd_penalty == True :
             self.use_reduced_2nd_penalty = False 
-            if self.rank == 0 :
-                print ('Change the flag use_reduced_2nd_penalty=False, since reduced 2nd-order penalty is supported only when Rayleigh quotient is used.\n')
+            print ('Change the flag use_reduced_2nd_penalty=False, since reduced 2nd-order penalty is supported only when Rayleigh quotient is used.\n')
 
-        if self.rank == 0 :
-            print ("Diagonal constants (size=%d):\n" % len(self.diag_coeff), self.diag_coeff)
-            print ("[Info]  beta = %.4f" % (self.beta))
-            print ("[Info]  seed = %d" % (seed))
-            print ("[Info]  dim = %d\n" % self.dim)
-            print ('\tStages: ', self.stage_list)
-            print ('\tBatch size list: ', self.batch_size_list)
-            print ('\tLearning rate list: ', self.learning_rate_list)
+        print ("Diagonal constants (size=%d):\n" % len(self.diag_coeff), self.diag_coeff)
+        print ("[Info]  beta = %.4f" % (self.beta))
+        print ("[Info]  seed = %d" % (seed))
+        print ("[Info]  dim = %d\n" % self.dim)
+        print ('\tStages: ', self.stage_list)
+        print ('\tBatch size list: ', self.batch_size_list)
+        print ('\tLearning rate list: ', self.learning_rate_list)
 
-            if self.all_k_eigs == True : 
-                print ("[Info] Compute the first %d eigenvalues" % (self.k))
-                print ("[Info] Weights =", self.eig_w)
-                if len(self.eig_w) < self.k : 
-                    print ('Error: only %d weights are provided for %d eigenvalues' % (len(self.eig_w), self.k))
-                    sys.exit(1)
-                if any(x <= 0 for x in self.eig_w) :
-                    print ('Error: weights in w must be positive!')
-                    sys.exit(1)
-                if any (self.eig_w[i] <= self.eig_w[i+1] for i in range(self.k-1)):
-                    print ('Error: weights in w are not strictly descending!')
-                    sys.exit(1)
-            else :
-                print ("[Info] Compute the %dth eigenvalue" % (self.k))
+        if self.all_k_eigs == True : 
+            print ("[Info] Compute the first %d eigenvalues" % (self.k))
+            print ("[Info] Weights =", self.eig_w)
+            if len(self.eig_w) < self.k : 
+                print ('Error: only %d weights are provided for %d eigenvalues' % (len(self.eig_w), self.k))
+                sys.exit(1)
+            if any(x <= 0 for x in self.eig_w) :
+                print ('Error: weights in w must be positive!')
+                sys.exit(1)
+            if any (self.eig_w[i] <= self.eig_w[i+1] for i in range(self.k-1)):
+                print ('Error: weights in w are not strictly descending!')
+                sys.exit(1)
+        else :
+            print ("[Info] Compute the %dth eigenvalue" % (self.k))
 
 
     # Load sampled data from text file
@@ -177,9 +137,7 @@ class eigen_solver():
 
         # The first line contains the total number of states
         K_total, tmp_dim = [int (x) for x in fp.readline().split()]
-        if self.rank == 0 :
-            print ("[Info] ")
-            print ("[Info] load data from file: %s\n\t%d states" % (states_file_name, K_total), flush=True)
+        print ("[Info] load data from file: %s\n\t%d states" % (states_file_name, K_total), flush=True)
 
         tmp_list = []
         line_idx = 0
@@ -190,10 +148,8 @@ class eigen_solver():
 
         # Go through lines 
         for line in fp :
-            # When the flag is true, data will be distributed among processors.
-            if self.distribute_data == False or line_idx % self.size == self.rank :
-                state = [float (x) for x in line.split(' ')]
-                tmp_list.append(state)
+            state = [float (x) for x in line.split(' ')]
+            tmp_list.append(state)
             line_idx += 1 
 
         state_weight_vec = np.array(tmp_list)
@@ -201,17 +157,7 @@ class eigen_solver():
         # Number of states 
         K = state_weight_vec.shape[0]
 
-        if self.distributed_training :
-            # Synchronization among processors
-            ts = torch.zeros(1)
-            if self.rank > 0 :
-               self.dist.recv(tensor=ts, src=self.rank-1)
-            print('\trank=%d, %d sample data loaded' % (self.rank, K), flush=True)
-            if self.rank < self.size - 1 :
-               self.dist.send(tensor=ts, dst=self.rank+1)
-            self.dist.barrier()
-        else :
-            print('\trank=%d, %d sample data loaded' % (self.rank, K), flush=True)
+        print('\t%d sample data loaded' % (K), flush=True)
 
         # The last column of the data contains the weights
         return state_weight_vec[:,:-1], state_weight_vec[:,-1]
@@ -252,20 +198,6 @@ class eigen_solver():
 
         # Step 2 and 3
         self.averaged_model.shift_and_normalize(mean_of_nn, var_of_nn) 
-
-    """ 
-      Model parameter (or gradient) averaging;
-      This function is only called when distributed_training=True
-    """
-    def average_model_parameters(self, average_grad=False):
-        if average_grad == True :
-            for param in self.model.parameters():
-                self.dist.all_reduce(param.grad, op=self.dist.ReduceOp.SUM)
-                param.grad /= self.size
-        else :
-            for param in self.model.parameters():
-                self.dist.all_reduce(param.data, op=self.dist.ReduceOp.SUM)
-                param.data /= self.size
 
     """
       Update the learning rate of optimizer, when a new training stage starts. 
@@ -362,21 +294,17 @@ class eigen_solver():
 
             if loss < self.constraint_tol : # Success 
                 flag = False
-            if self.rank == 0 and constraint_step_num % 100 == 0 :  # Print information
+            if constraint_step_num % 100 == 0 :  # Print information
                print('Constraint steps:%d,   constraints= [%.4e, %.4e]' % (constraint_step_num, penalty[0], penalty[1]), flush=True)  
             if constraint_step_num >= self.constraint_max_step : # Failed
-                print("Rank=%d, Constraint tolerance %.4f not reached in %d steps.\n" % (self.rank, self.constraint_tol, constraint_step_num), flush=True)  
+                print("Constraint tolerance %.4f not reached in %d steps.\n" % (self.constraint_tol, constraint_step_num), flush=True)  
                 exit(1)
 
-        if self.rank == 0 : # Success
-            print('Total constraint steps: %d,   constraints= [%.4e, %.4e]' % (constraint_step_num, penalty[0], penalty[1]), flush=True)  
+        print('Total constraint steps: %d,   constraints= [%.4e, %.4e]' % (constraint_step_num, penalty[0], penalty[1]), flush=True)  
 
     """
       This function calculates the loss function, 
       and updates the neural network functions according to its gradient.
-
-      When distributed_training=True, each processor computes gradients of the loss function using local data. 
-      Then, the gradients are averaged among processors.
 
       The loss function consists of 
            (1) either (when computing the kth eigenvalue)
@@ -461,9 +389,6 @@ class eigen_solver():
 
             cvec = range(self.k)
             if self.sort_eigvals_in_training :
-                if self.distributed_training : 
-                    self.dist.all_reduce(eig_vals, op=self.dist.ReduceOp.SUM)
-                    eig_vals /= self.size
                 cvec = np.argsort(eig_vals)
                 # Sort the eigenvalues 
                 eig_vals = eig_vals[cvec]
@@ -491,32 +416,6 @@ class eigen_solver():
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
-
-        if self.distributed_training :
-            # Average gradients and other quantities among processors
-            self.average_model_parameters(average_grad=True)
-
-            self.dist.all_reduce(loss, op=self.dist.ReduceOp.SUM)
-            loss /= self.size 
-
-            self.dist.all_reduce(non_penalty_loss, op=self.dist.ReduceOp.SUM)
-            non_penalty_loss /= self.size 
-
-            self.dist.all_reduce(penalty, op=self.dist.ReduceOp.SUM)
-            penalty /= self.size
-
-            self.dist.all_reduce(eig_vals, op=self.dist.ReduceOp.SUM)
-            eig_vals /= self.size
-
-            self.dist.all_reduce(self.mean_list, op=self.dist.ReduceOp.SUM)
-            self.mean_list /= self.size
-
-            self.dist.all_reduce(self.var_list, op=self.dist.ReduceOp.SUM)
-            self.var_list /= self.size
-
-            if self.all_k_eigs == False :
-                self.dist.all_reduce(cvec, op=self.dist.ReduceOp.SUM)
-                cvec /= self.size
 
         return eig_vals.numpy(), cvec.numpy(), loss, non_penalty_loss, penalty
 
@@ -552,31 +451,17 @@ class eigen_solver():
                 # Reset parameters of averaged_model to zero
                 self.zero_model_parameters(self.averaged_model)
 
-                # Distribute batch size to each processor
-                if self.distributed_training :
-                    bsz_local = bsz // self.size
-                    if self.rank < bsz % self.size :
-                       bsz_local += 1
-                else :
-                    bsz_local = bsz
+                print ('\n[Info] Start %dth training stage from step %d\n\t batch size=%d, lr=%.4f, alpha=[%.2f,%.2f]\n' % (stage_index+1, i, bsz, self.learning_rate_list[stage_index], alpha_vec[0], alpha_vec[1]))
 
-                if self.rank == 0 :
-                    print ('\n[Info] Start %dth training stage from step %d\n\t batch size=%d, lr=%.4f, alpha=[%.2f,%.2f]\n' % (stage_index+1, i, bsz, self.learning_rate_list[stage_index], alpha_vec[0], alpha_vec[1]))
                 # Update the current stage index
-
                 stage_index += 1 
-
-            # Update training parameters 
-            if self.distributed_training :
-                # Make sure the neuron networks have the same parameters on each processor.
-                self.average_model_parameters()
 
             if self.include_constraint_step == True and i % self.constraint_how_often == 0 :
                 # Train neural networks to meet constraints 
-                self.constraint_update_step(bsz_local)
+                self.constraint_update_step(bsz)
 
             # Train neuron networks to minimize loss 
-            eig_vals, cvec, loss, non_penalty_loss, penalty = self.update_step(bsz_local, alpha_vec)
+            eig_vals, cvec, loss, non_penalty_loss, penalty = self.update_step(bsz, alpha_vec)
 
             # Update the statistics of eigenvalues
             if self.all_k_eigs :
@@ -591,7 +476,7 @@ class eigen_solver():
             self.record_model_parameters(self.averaged_model, self.model, cvec)
 
             # Print information, if we are at the end of each stage 
-            if self.rank == 0 and i + 1 == self.stage_list[stage_index] :
+            if i + 1 == self.stage_list[stage_index] :
 
                 # Compute total number of steps in this stage
                 tot_step_in_stage = i + 1 - self.stage_list[stage_index - 1]
@@ -623,7 +508,7 @@ class eigen_solver():
                     np.savetxt(file_name, averaged_cvec, header='%d' % (self.k), comments="", fmt="%.10f")
 
             # Display some training information
-            if self.rank == 0 and i % self.print_every_step == 0 :
+            if i % self.print_every_step == 0 :
                 print( '\ni=%d, stage %d' % (i, stage_index)) 
                 print( '   loss= %.4e' % (loss) )
                 if self.all_k_eigs == False :
@@ -665,8 +550,7 @@ class eigen_solver():
         self.weights = torch.from_numpy(self.weights)
 
         if self.weights.min() <= -1e-8 :
-            if self.rank == 0 :
-                print ( 'Error: rank=%d, weights of states can not be negative (min=%.4e)!' % (self.rank, self.weights.min()) )
+            print ( 'Error: weights of states can not be negative (min=%.4e)!' % (self.weights.min()) )
             sys.exit()
 
         # Size of the trajectory data
@@ -693,13 +577,12 @@ class eigen_solver():
             self.constraint_optimizer = torch.optim.Adam(self.model.parameters(), lr=self.constraint_learning_rate)
 
         # Display some information 
-        if self.rank == 0:
-            tot_num_parameters = sum([p.numel() for p in self.model.parameters()])
-            elapsed_time = time.process_time() - self.start_time
+        tot_num_parameters = sum([p.numel() for p in self.model.parameters()])
+        elapsed_time = time.process_time() - self.start_time
 
-            print( '\n[Info] Time used in loading data: %.2f Sec\n' % elapsed_time )
-            print('\n[Info] Total number of parameters in networks: %d\n' % tot_num_parameters) 
-            print ("[Info]  NN architecture:", self.arch_list)
+        print( '\n[Info] Time used in loading data: %.2f Sec\n' % elapsed_time )
+        print('\n[Info] Total number of parameters in networks: %d\n' % tot_num_parameters) 
+        print ("[Info]  NN architecture:", self.arch_list)
 
         # Maximal number of items of log data
         self.log_max_n = self.train_max_step // self.print_every_step + 1
@@ -718,35 +601,24 @@ class eigen_solver():
 
         self.log_p_index = 0
 
-        if self.distributed_training :  
-            # On each processor, print information of data size 
-            ts = torch.zeros(1)
-            if self.rank > 0 :
-               self.dist.recv(tensor=ts, src=self.rank-1)
-            print ("On rank %d, data size K=%d,\tRange of weights: [%.3e, %.3e]" % (self.rank, self.K, self.weights.min(), self.weights.max()), flush=True)
-            if self.rank < self.size - 1 :
-               self.dist.send(tensor=ts, dst=self.rank+1)
-            self.dist.barrier()
-        else :
-            print ('Range of weights: [%.3e, %.ee]' % (self.weights.min(), self.weights.max()) )
+        print ('Range of weights: [%.3e, %.ee]' % (self.weights.min(), self.weights.max()) )
 
         # Train the networks
         self.train()
 
         # Output training results
-        if self.rank == 0 :
 
-            file_name = './data/%s.pt' % (self.eig_file_name_prefix)
-            torch.save(self.averaged_model, file_name)
-            print( '\nNeuron neworks after training are saved to %s' % (file_name) )
+        file_name = './data/%s.pt' % (self.eig_file_name_prefix)
+        torch.save(self.averaged_model, file_name)
+        print( '\nNeuron neworks after training are saved to %s' % (file_name) )
 
-            if self.all_k_eigs == False :
-                file_name = './data/cvec.txt' 
-                np.savetxt(file_name, averaged_cvec, header='%d' % (self.k), comments="", fmt="%.10f")
+        if self.all_k_eigs == False :
+            file_name = './data/cvec.txt' 
+            np.savetxt(file_name, averaged_cvec, header='%d' % (self.k), comments="", fmt="%.10f")
 
-            elapsed_time = time.process_time() - self.start_time
-            print( '\nTotal Runtime: %.2f Sec\n' % elapsed_time )
+        elapsed_time = time.process_time() - self.start_time
+        print( '\nTotal Runtime: %.2f Sec\n' % elapsed_time )
 
-            np.savetxt('./data/%s' % self.log_filename, self.log_info_vec[0:self.log_p_index, :], header='%d %d' % (self.log_p_index, self.log_info_vec.shape[1]), comments="", fmt="%.10f")
+        np.savetxt('./data/%s' % self.log_filename, self.log_info_vec[0:self.log_p_index, :], header='%d %d' % (self.log_p_index, self.log_info_vec.shape[1]), comments="", fmt="%.10f")
 
 
