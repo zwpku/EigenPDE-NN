@@ -84,6 +84,7 @@ class Param:
         # Include extra steps for constriants
         self.include_constraint_step = config['Training'].getboolean('include_constraint_step')
         if self.include_constraint_step == True :
+            self.constraint_first_step = config['Training'].getint('constraint_first_step')
             self.constraint_tol = config['Training'].getfloat('constraint_tol')
             self.constraint_learning_rate = config['Training'].getfloat('constraint_learning_rate')
             self.constraint_max_step = config['Training'].getint('constraint_max_step')

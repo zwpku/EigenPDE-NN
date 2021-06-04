@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import MDAnalysis as mda 
 from MDAnalysis import transformations
 from MDAnalysis.analysis.dihedrals import Dihedral
@@ -46,6 +47,12 @@ class namd_data_loader() :
 
         num_data = len(self.angles)
 
+        fig, ax = plt.subplots(1,1)
+        plt.hist(self.weights, bins=30)
+        filename = './fig/weights_hist1d.eps' 
+        plt.savefig(filename)
+        print ('\n1d histgram of weights saved to: %s' % filename)
+
         # Count histgram and weights 
         for i in range (num_data):
 
@@ -60,7 +67,10 @@ class namd_data_loader() :
             for j in range (numy):
                 if (angle_counter[i,j] > 0):
                     weight_counter[i,j] /= angle_counter[i,j]
+                else :
+                    weight_counter[i,j] = 1e-5
 
+        plt.clf()
         fig, ax = plt.subplots(1,1)
         # Show the angle counting data in 2d plot
         h = ax.imshow(angle_counter.T, extent=[-180,180, -180, 180], cmap='jet', origin='lower', vmax=10)
@@ -74,12 +84,13 @@ class namd_data_loader() :
         plt.clf()
         fig, ax = plt.subplots(1,1)
         # Plot may not be smooth at states where counter is zero
-        h = ax.imshow(weight_counter.T, extent=[-180,180, -180, 180], vmax=5.0, cmap='jet', origin='lower')
+        h = ax.imshow(weight_counter.T, extent=[-180,180, -180, 180], cmap='jet', origin='lower', norm=mpl.colors.LogNorm())
         plt.colorbar(h)
         filename = './fig/weights_of_angles.eps' 
         plt.savefig(filename)
 
         print ('Plot of 2d weight data saved to: %s\n' % filename)
+
 
     def load_angles_from_colvar_traj(self) :
 
@@ -165,6 +176,16 @@ class namd_data_loader() :
 
         self.weights = weights_along_colvars
 
+    def total_weights_C7ax(self) :
+        core_weight = 0
+        max_w = 0
+        for i in range (len(self.angles)):
+            if self.angles[i, 0] > 40 and self.angles[i, 0] < 100 :
+                core_weight = core_weight + self.weights[i]
+                max_w = max(max_w, self.weights[i])
+
+        print ('Weights for C7ax (max, sum-c7ax, sum, percentage): ', max_w, core_weight, self.weights.sum(), core_weight / self.weights.sum() )
+
     def load_namd_traj(self):
         # Names of files containing trajectory data
         psf_filename = '%s/%s.psf' % (self.namd_data_path, self.psf_name)
@@ -232,6 +253,8 @@ class namd_data_loader() :
         else :
             print("[Info] Since data are unbiased, all weights are 1\n", flush=True)
             self.weights = np.ones(K_total) 
+
+        self.total_weights_C7ax()
 
         # Number of selected atoms
         self.atom_num = len(self.selected_atoms.names)

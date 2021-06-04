@@ -54,8 +54,7 @@ class eigen_solver():
             self.constraint_learning_rate = Param.constraint_learning_rate 
             self.constraint_penalty_method = Param.constraint_penalty_method 
             self.constraint_how_often = Param.constraint_how_often
-            if self.constraint_penalty_method == False :
-                self.penalty_method = False
+            self.constraint_first_step = Param.constraint_first_step
             if self.constraint_how_often == 0 :
                 self.constraint_how_often = self.train_max_step + 1
 
@@ -456,9 +455,12 @@ class eigen_solver():
                 # Update the current stage index
                 stage_index += 1 
 
-            if self.include_constraint_step == True and i % self.constraint_how_often == 0 :
-                # Train neural networks to meet constraints 
-                self.constraint_update_step(bsz)
+            if self.include_constraint_step == True and i >= self.constraint_first_step :
+                if self.constraint_penalty_method == False :
+                    self.penalty_method = False
+                if i % self.constraint_how_often == 0 :
+                    # Train neural networks to meet constraints 
+                    self.constraint_update_step(bsz)
 
             # Train neuron networks to minimize loss 
             eig_vals, cvec, loss, non_penalty_loss, penalty = self.update_step(bsz, alpha_vec)
