@@ -211,10 +211,10 @@ class eigen_solver():
     def fun_and_grad_on_data(self, batch_size):
 
         #x_batch_index = random.sample(range(self.K), batch_size)
+        #x_batch_index = random.choice(range(self.K), weights=self.weights, k=batch_size)
 
         # Randomly generate indices of samples from data set according to their weights
         x_batch_index = list(torch.utils.data.WeightedRandomSampler(self.weights, batch_size))
-
         #  Choose samples corresonding to those indices,
         #  and reshape the array to avoid the problem when dim=1
         x_batch = torch.reshape(self.X_vec[x_batch_index], (batch_size, self.dim))
@@ -239,6 +239,7 @@ class eigen_solver():
         # Mean and variance evaluated on data
         self.mean_list = self.y.mean(dim=0) 
         self.var_list = (self.y**2).mean(dim=0) - self.mean_list**2 
+
 
     # Penalty terms corresonding to 1st-order and 2nd-order constraints
     def penalty_terms(self) :
@@ -420,6 +421,8 @@ class eigen_solver():
         # Set the current training stage to zero
         stage_index = 0
 
+        log_f = open('./data/%s' % self.log_filename, 'w')
+
         # Loop over train steps
         for i in range(self.train_max_step) :
 
@@ -527,13 +530,16 @@ class eigen_solver():
                 print( '   runtime: %.2f Sec' % elapsed_time )
 
                 # Store the log info
-                if self.log_p_index < self.log_max_n :
-                    self.log_info_vec[self.log_p_index, 0:4] = [loss, non_penalty_loss, penalty[0], penalty[1]]
-                    if self.all_k_eigs == False : 
-                        self.log_info_vec[self.log_p_index, 4] = eig_vals
-                    else :
-                        self.log_info_vec[self.log_p_index, 4:] = eig_vals
-                    self.log_p_index += 1
+                log_f.write('%d ' % i)
+                log_info_vec = [loss, non_penalty_loss, penalty[0], penalty[1]]
+                if self.all_k_eigs == False : 
+                    log_info_vec.append(eig_vals)
+                else :
+                    log_info_vec.extend(eig_vals)
+
+                np.savetxt(log_f, np.asarray(log_info_vec).reshape(1,-1), fmt="%.6f")
+
+        log_f.close()
 
     # Call this function to train networks
     def run(self) :
@@ -582,24 +588,6 @@ class eigen_solver():
         print( '\n[Info] Time used in loading data: %.2f Sec\n' % elapsed_time )
         print('\n[Info] Total number of parameters in networks: %d\n' % tot_num_parameters) 
         print ("[Info]  NN architecture:", self.arch_list)
-
-        # Maximal number of items of log data
-        self.log_max_n = self.train_max_step // self.print_every_step + 1
-
-        """
-          Initialize array for log data, which includes
-            (1) total loss; 
-            (2) non-penalty part of loss; 
-            (3)-(4) two penalty terms; 
-            (5)- eigenvalues 
-        """
-        if self.all_k_eigs == False :
-            self.log_info_vec = np.zeros((self.log_max_n, 5))
-        else :
-            self.log_info_vec = np.zeros((self.log_max_n, 4 + self.k))
-
-        self.log_p_index = 0
-
         print ('Range of weights: [%.3e, %.ee]' % (self.weights.min(), self.weights.max()) )
 
         # Train the networks
@@ -617,7 +605,4 @@ class eigen_solver():
 
         elapsed_time = time.process_time() - self.start_time
         print( '\nTotal Runtime: %.2f Sec\n' % elapsed_time )
-
-        np.savetxt('./data/%s' % self.log_filename, self.log_info_vec[0:self.log_p_index, :], header='%d %d' % (self.log_p_index, self.log_info_vec.shape[1]), comments="", fmt="%.10f")
-
 
