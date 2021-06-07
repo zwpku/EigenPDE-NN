@@ -18,6 +18,7 @@ class namd_data_loader() :
 
         self.which_data_to_use = Param.which_data_to_use
         self.use_biased_data = Param.use_biased_data
+        self.weight_threshold_to_remove_states = Param.weight_threshold_to_remove_states
         self.align_data_flag =  Param.align_data_flag
 
         self.namd_data_filename_prefix = Param.namd_data_filename_prefix
@@ -265,6 +266,21 @@ class namd_data_loader() :
         self.traj_data = np.array([self.selected_atoms.positions for ts in u.trajectory]).reshape((-1, self.atom_num * 3))
 
         print ("min, max, and mean of components: \n", np.min(self.traj_data, axis=0), np.max(self.traj_data, axis=0), np.mean(self.traj_data, axis=0) )
+
+        eff_indices = self.weights >= self.weight_threshold_to_remove_states
+
+        self.weights = self.weights[eff_indices]
+        self.traj_data = self.traj_data[eff_indices]
+        self.angles = self.angles[eff_indices]
+
+        K = self.traj_data.shape[0]
+        # Rescale weights (again) by constant 
+        rescale = np.sum(self.weights) / K
+        self.weights /= rescale
+
+        print ("States whose weight is below %.2e are removed. %d states left." % (self.weight_threshold_to_remove_states, self.traj_data.shape[0]) )
+
+        print ('\t(min,max,sum) of weights=(%.3e, %.3e, %.3e)' % (min(self.weights), max(self.weights), sum(self.weights) ) )
 
     def load_all(self):
 

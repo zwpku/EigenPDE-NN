@@ -109,6 +109,7 @@ class Param:
             self.psf_name = config['NAMD'].get('psf_name')
             self.which_data_to_use = config['NAMD'].get('which_data_to_use')
             self.use_biased_data = config['NAMD'].getboolean('use_biased_data')
+            self.weight_threshold_to_remove_states = config['NAMD'].getfloat('weight_threshold_to_remove_states')
             self.align_data_flag = config['NAMD'].get('align_data_flag')
             self.namd_data_filename_prefix = config['NAMD'].get('namd_data_filename_prefix')
             self.namd_data_path = config['NAMD'].get('namd_data_path')
