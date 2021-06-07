@@ -538,6 +538,7 @@ class eigen_solver():
                     log_info_vec.extend(eig_vals)
 
                 np.savetxt(log_f, np.asarray(log_info_vec).reshape(1,-1), fmt="%.6f")
+                log_f.flush()
 
         log_f.close()
 
