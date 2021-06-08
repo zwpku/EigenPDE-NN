@@ -22,9 +22,17 @@ class Polynomial22(torch.nn.Module):
         #return tmp
 
 class MySequential(torch.nn.Module):
-    def __init__(self, size_list, ReLU_flag):
+    def __init__(self, size_list, ReLU_flag, features):
         super(MySequential, self).__init__()
-        self.nn_dims = size_list
+
+        # Be careful, not just use: self.nn_dims = size_list 
+        self.nn_dims = size_list[:]
+        self.features = features
+        self.num_features = len(self.features)
+
+        if self.num_features > 0 :
+            self.nn_dims[0] = self.num_features
+
         self.linears = torch.nn.ModuleList([torch.nn.Linear(self.nn_dims[i], self.nn_dims[i+1]) for i in range(len(self.nn_dims)-1)])
         if ReLU_flag :
             self.activations = torch.nn.ModuleList([torch.nn.ReLU() for i in range(len(self.nn_dims)-2)])
@@ -42,18 +50,37 @@ class MySequential(torch.nn.Module):
         self.linears[-1].bias /= torch.sqrt(var)
 
     def forward(self, x):
+
+        if self.num_features > 0 :
+            xf = torch.zeros(x.shape[0], self.num_features).double()
+            num_atoms = int(x.shape[1] / 3)
+            x = x.reshape((-1, num_atoms, 3))
+            # Compute diheral angles for each group of 4 atoms
+            for i in range(self.num_features) :
+                ag = [int(xx) for xx in self.features[i][1:]]
+                r12 = x[:, ag[1], :] - x[:, ag[0], :]
+                r23 = x[:, ag[2], :] - x[:, ag[1], :]
+                r34 = x[:, ag[3], :] - x[:, ag[2], :]
+                n1 = torch.cross(r12, r23)
+                n2 = torch.cross(r23, r34)
+                cos_phi = (n1*n2).sum(dim=1)
+                sin_phi = (n1 * r34).sum(dim=1) * torch.norm(r23, dim=1)
+                xf[:, i] = torch.atan2(sin_phi, cos_phi)
+        else :
+            xf = x
+
         for i in range(len(self.nn_dims) - 1) :
-            x = self.linears[i](x)
+            xf = self.linears[i](xf)
             if i < len(self.nn_dims) - 2 :
-                x = self.activations[i](x)
-        return x
+                xf = self.activations[i](xf)
+        return xf
 
 # Network whose ith output gives the ith eigenfunction
 class MyNet(torch.nn.Module):
-    def __init__(self, size_list, ReLU_flag, d_out):
+    def __init__(self, size_list, ReLU_flag, d_out, features):
         super(MyNet, self).__init__()
         self.d_out = d_out
-        self.nets = torch.nn.ModuleList([MySequential(size_list, ReLU_flag) for i in range(d_out)])
+        self.nets = torch.nn.ModuleList([MySequential(size_list, ReLU_flag, features) for i in range(d_out)])
         #self.nets = torch.nn.ModuleList([Polynomial22(d_in=d_in, d_out=1) for i in range(d_out)])
 
     def shift_and_normalize(self, mean_list, var_list) :

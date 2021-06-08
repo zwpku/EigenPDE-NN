@@ -106,8 +106,7 @@ class namd_data_loader() :
         np.savetxt(angle_output_file, angles[:, 1:], header='%d' % (angles.shape[0]), comments="", fmt="%.10f")
 
         # For test purpose
-        print ('\nAngles of first 2 states:\n\t', angles[0:2,:])
-        print ('\nAngles of last 2 states:\n\t', angles[-2:,:])
+        print ('\nAngles of first 5 states:\n\t', angles[0:5,:])
 
         self.angles = angles[:,1:]
 
@@ -138,19 +137,6 @@ class namd_data_loader() :
 
         # Read PMF data on mesh of angles 
         pmf_on_angle_mesh = np.loadtxt(colvar_pmf_filename)[:,2].reshape([numx, numy])
-
-
-        """
-        # Then, compute angle values along trajectory data
-        print ('[Info] Compute dihedral angles (this step might be slow)\n')
-
-        # Two dihedral angles for data in trajectory 
-        #
-        # After selecting the 5 atoms which define dihedral angles, 
-        # the two angles (phi, theta) are defined by atoms 0,1,2,3 and atoms 1,2,3,4. 
-        phi_angles = calc_dihedrals(traj_data[:,0,:], traj_data[:,1,:], traj_data[:,2,:], traj_data[:,3,:])
-        theta_angles = calc_dihedrals(traj_data[:,1,:], traj_data[:,2,:], traj_data[:,3,:], traj_data[:,4,:])
-        """
 
         K_angle = self.angles.shape[0] 
 
@@ -243,6 +229,26 @@ class namd_data_loader() :
 
         self.load_angles_from_colvar_traj() 
 
+        """
+        # Test the calculation of dihedral angles 
+        # Two dihedral angles for data in trajectory 
+        print ('Compute dihedral angles\n')
+
+        # Select relevant atoms for two angles
+        selected_atoms = u.select_atoms("bynum 1 3 13 15 17")
+        traj_data = np.array([selected_atoms.positions for ts in u.trajectory[0:5]])
+
+        # Angles [phi, psi] are defined by the groups of atoms 
+        #    [13, 15, 17 ,1], and [15, 17 ,1, 3], respectively.  
+        phi_angles = calc_dihedrals(traj_data[:,2,:], traj_data[:,3,:], traj_data[:,4,:], traj_data[:,0,:]) / math.pi * 180
+        psi_angles = calc_dihedrals(traj_data[:,3,:], traj_data[:,4,:], traj_data[:,0,:], traj_data[:,1,:]) / math.pi * 180
+
+        #print ('[INFO] Angle of first 10 states:\n', angle_data[0:10,:])
+        print (phi_angles[0:5])
+        print (psi_angles[0:5])
+        print (traj_data.reshape((-1,15)))
+        """
+
         if self.use_biased_data == True : 
         
             print("[Info] Load PMF along states\n", flush=True)
@@ -264,8 +270,6 @@ class namd_data_loader() :
 
         # Change the 3d vector to 2d vector
         self.traj_data = np.array([self.selected_atoms.positions for ts in u.trajectory]).reshape((-1, self.atom_num * 3))
-
-        print ("min, max, and mean of components: \n", np.min(self.traj_data, axis=0), np.max(self.traj_data, axis=0), np.mean(self.traj_data, axis=0) )
 
         eff_indices = self.weights >= self.weight_threshold_to_remove_states
 
