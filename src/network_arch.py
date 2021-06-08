@@ -30,9 +30,6 @@ class MySequential(torch.nn.Module):
         self.features = features
         self.num_features = len(self.features)
 
-        if self.num_features > 0 :
-            self.nn_dims[0] = self.num_features
-
         self.linears = torch.nn.ModuleList([torch.nn.Linear(self.nn_dims[i], self.nn_dims[i+1]) for i in range(len(self.nn_dims)-1)])
         if ReLU_flag :
             self.activations = torch.nn.ModuleList([torch.nn.ReLU() for i in range(len(self.nn_dims)-2)])

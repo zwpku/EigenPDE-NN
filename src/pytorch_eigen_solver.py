@@ -578,7 +578,10 @@ class eigen_solver():
         self.K = self.X_vec.shape[0]
 
         # Include the input/output layers of neural network
-        self.arch_list = [self.dim] + self.arch_list + [1]
+        if len(self.nn_features) > 0 :
+            self.arch_list = [len(self.nn_features)] + self.arch_list + [1]
+        else :
+            self.arch_list = [self.dim] + self.arch_list + [1]
 
         # Initialize networks 
         self.model = network_arch.MyNet(self.arch_list, self.ReLU_flag, self.k, self.nn_features)
