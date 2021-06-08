@@ -21,7 +21,7 @@ for idx in range(1, log_info_vec.shape[1]):
         else :
             label_name = '%dth_eigval' % tot_num_k
 
-    plt.plot(log_info_vec[:,0], log_info_vec[:,idx], color=lc[idx-1], label='%s' % label_name)
+    plt.plot(log_info_vec[:,idx], log_info_vec[:,idx], color=lc[idx-1], label='%s' % label_name)
     ax.legend(bbox_to_anchor=(0.5, 0, 0.5, 0.5))
     plt.yscale('log')
 #    ax.set_ylim(-2.1, 2.70)

@@ -55,6 +55,12 @@ class Param:
         # Use ReLu or Tanh as activation functions
         self.ReLU_flag = config['NeuralNetArch'].getboolean('ReLU_flag')
 
+        try:
+            self.nn_features = config['NeuralNetArch']['features']
+        except:
+            self.nn_features = None
+            print ('[Info] No features found')
+
         # Total gradient steps
         self.train_max_step = config['Training'].getint('train_max_step')
 

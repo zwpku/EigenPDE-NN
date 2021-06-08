@@ -41,6 +41,18 @@ class eigen_solver():
 
         self.ReLU_flag = Param.ReLU_flag
 
+        self.nn_features = []
+        if Param.nn_features != None :
+            feature_str_list =  Param.nn_features.split(';')
+            for feature_str in feature_str_list :
+                feature_str_split = feature_str.strip("{( )}").split(',')
+                # Only diheral angles are considered in the current implementation
+                print (feature_str_split)
+                if feature_str_split[0] == 'dihedral' : 
+                    self.nn_features.append(feature_str_split)
+
+        print ('Features: ', self.nn_features)
+
         self.train_max_step = Param.train_max_step
 
         self.include_constraint_step = Param.include_constraint_step
@@ -211,7 +223,7 @@ class eigen_solver():
     def fun_and_grad_on_data(self, batch_size):
 
         # Randomly generate indices of samples from data set according to their weights
-        #x_batch_index = random.sample(range(self.K), batch_size)
+        x_batch_index = random.sample(range(self.K), batch_size)
 
         #  Choose samples corresonding to those indices,
         #  and reshape the array to avoid the problem when dim=1
@@ -569,10 +581,10 @@ class eigen_solver():
         self.arch_list = [self.dim] + self.arch_list + [1]
 
         # Initialize networks 
-        self.model = network_arch.MyNet(self.arch_list, self.ReLU_flag, self.k)
+        self.model = network_arch.MyNet(self.arch_list, self.ReLU_flag, self.k, self.nn_features)
 
         # These networks record training results of several consecutive training steps
-        self.averaged_model = network_arch.MyNet(self.arch_list, self.ReLU_flag, self.k)
+        self.averaged_model = network_arch.MyNet(self.arch_list, self.ReLU_flag, self.k, self.nn_features)
 
         # Use double precision
         self.model.double()
