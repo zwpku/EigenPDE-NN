@@ -49,7 +49,7 @@ class MySequential(torch.nn.Module):
     def forward(self, x):
 
         if self.num_features > 0 :
-            xf = torch.zeros(x.shape[0], self.num_features).double()
+            xf = torch.zeros(x.shape[0], 2 * self.num_features).double()
             num_atoms = int(x.shape[1] / 3)
             x = x.reshape((-1, num_atoms, 3))
             # Compute diheral angles for each group of 4 atoms
@@ -62,7 +62,8 @@ class MySequential(torch.nn.Module):
                 n2 = torch.cross(r23, r34)
                 cos_phi = (n1*n2).sum(dim=1)
                 sin_phi = (n1 * r34).sum(dim=1) * torch.norm(r23, dim=1)
-                xf[:, i] = torch.atan2(sin_phi, cos_phi)
+                xf[:, 2*i] = cos_phi
+                xf[:, 2*i+1] = sin_phi
         else :
             xf = x
 

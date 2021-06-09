@@ -577,10 +577,11 @@ class eigen_solver():
         # Size of the trajectory data
         self.K = self.X_vec.shape[0]
 
-        # Include the input/output layers of neural network
         if len(self.nn_features) > 0 :
-            self.arch_list = [len(self.nn_features)] + self.arch_list + [1]
+            # Include the feature layer and the output layers of neural network
+            self.arch_list = [2 * len(self.nn_features)] + self.arch_list + [1]
         else :
+            # Include the input/output layers of neural network
             self.arch_list = [self.dim] + self.arch_list + [1]
 
         # Initialize networks 
