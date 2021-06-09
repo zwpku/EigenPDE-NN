@@ -67,6 +67,8 @@ class Param:
         #Total batch size 
         self.batch_size_list = [int(x) for x in config['Training'].get('batch_size_list').split(',')] 
 
+        self.batch_uniform_weight = config['Training'].getboolean('batch_uniform_weight')
+
         # Train stages 
         self.stage_list = [int(x) for x in config['Training'].get('stage_list').split(',')]
 

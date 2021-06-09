@@ -161,7 +161,8 @@ class namd_data_loader() :
 
         print ('\t(min,max,sum) of weights=(%.3e, %.3e, %.3e)' % (min(weights_along_colvars), max(weights_along_colvars), sum(weights_along_colvars) ) )
 
-        self.weights = weights_along_colvars
+        #self.weights = weights_along_colvars
+        self.weights = pmf_along_colvars
 
     def total_weights_C7ax(self) :
         core_weight = 0
@@ -271,6 +272,7 @@ class namd_data_loader() :
         # Change the 3d vector to 2d vector
         self.traj_data = np.array([self.selected_atoms.positions for ts in u.trajectory]).reshape((-1, self.atom_num * 3))
 
+        """
         eff_indices = self.weights >= self.weight_threshold_to_remove_states
 
         self.weights = self.weights[eff_indices]
@@ -281,6 +283,7 @@ class namd_data_loader() :
         # Rescale weights (again) by constant 
         rescale = np.sum(self.weights) / K
         self.weights /= rescale
+        """
 
         print ("States whose weight is below %.2e are removed. %d states left." % (self.weight_threshold_to_remove_states, self.traj_data.shape[0]) )
 

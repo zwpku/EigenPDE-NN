@@ -25,8 +25,10 @@ class eigen_solver():
         else :
             self.beta = Param.beta
 
+        self.batch_uniform_weight = Param.batch_uniform_weight
         self.stage_list = Param.stage_list
         self.batch_size_list = Param.batch_size_list
+
         self.sort_eigvals_in_training = Param.sort_eigvals_in_training
 
         self.learning_rate_list = Param.learning_rate_list
@@ -192,13 +194,10 @@ class eigen_solver():
     # 1) Compute mean and variance of averaged model on full sample data
     # 2) Shift mean value, 
     # 3) Normalize 
-    def update_averaged_model(self, num):
-        # Step 1 
-        for param in self.averaged_model.parameters():
-            param /= num
+    def update_mean_and_var_of_model(self, model):
 
         # Evaluate function value on full data
-        y = self.averaged_model(self.X_vec).detach()
+        y = model(self.X_vec).detach()
 
         # Total weights, will be used for normalization 
         b_tot_weights = self.weights.sum()
@@ -208,7 +207,9 @@ class eigen_solver():
         var_of_nn = [(y[:,idx]**2 * self.weights).sum() / b_tot_weights - mean_of_nn[idx]**2 for idx in range(self.k)]
 
         # Step 2 and 3
-        self.averaged_model.shift_and_normalize(mean_of_nn, var_of_nn) 
+        model.shift_and_normalize(mean_of_nn, var_of_nn) 
+
+        return model 
 
     """
       Update the learning rate of optimizer, when a new training stage starts. 
@@ -222,8 +223,8 @@ class eigen_solver():
     """
     def fun_and_grad_on_data(self, batch_size):
 
-        # Randomly generate indices of samples from data set according to their weights
-        x_batch_index = random.sample(range(self.K), batch_size)
+        # Randomly generate indices of samples from data set 
+        x_batch_index = random.choices(range(self.K), cum_weights=self.cum_weights, k=batch_size)
 
         #  Choose samples corresonding to those indices,
         #  and reshape the array to avoid the problem when dim=1
@@ -246,7 +247,10 @@ class eigen_solver():
         """
         self.y_grad_vec = [torch.autograd.grad(self.y[:,idx], x_batch, v_in_jac, create_graph=True)[0] for idx in range(self.k)]
 
-        self.b_weights= self.weights[x_batch_index]
+        if self.batch_uniform_weight == True : 
+            self.b_weights= self.weights[x_batch_index]
+        else :
+            self.b_weights= torch.ones(batch_size, dtype=torch.float64)
 
         # Total weights, will be used for normalization 
         self.b_tot_weights = self.b_weights.sum()
@@ -313,6 +317,33 @@ class eigen_solver():
                 exit(1)
 
         print('Total constraint steps: %d,   constraints= [%.4e, %.4e]' % (constraint_step_num, penalty[0], penalty[1]), flush=True)  
+
+    def test_update_step(self, bsz, alpha_vec):
+        # Randomly generate indices of samples from data set according to their weights
+        x_batch_index = random.sample(range(self.K), bsz)
+
+        #  Choose samples corresonding to those indices,
+        #  and reshape the array to avoid the problem when dim=1
+        x_batch = torch.reshape(self.X_vec[x_batch_index], (bsz, self.dim))
+
+        # Evaluate function value on data
+        y = self.model(x_batch)
+
+        b_weights = self.weights[x_batch_index]
+
+        loss = ((y[:,0] - b_weights)**2).sum()
+
+        # Update training parameters
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
+        eig_vals = np.zeros(self.k)
+        cvec = range(self.k)
+        non_penalty_loss = 0
+        penalty = np.zeros(2)
+
+        return eig_vals, cvec, loss, non_penalty_loss, penalty
 
     """
       This function calculates the loss function, 
@@ -478,7 +509,8 @@ class eigen_solver():
                     self.constraint_update_step(bsz)
 
             # Train neuron networks to minimize loss 
-            eig_vals, cvec, loss, non_penalty_loss, penalty = self.update_step(bsz, alpha_vec)
+            #eig_vals, cvec, loss, non_penalty_loss, penalty = self.update_step(bsz, alpha_vec)
+            eig_vals, cvec, loss, non_penalty_loss, penalty = self.test_update_step(bsz, alpha_vec)
 
             # Update the statistics of eigenvalues
             if self.all_k_eigs :
@@ -492,13 +524,13 @@ class eigen_solver():
 
             self.record_model_parameters(self.averaged_model, self.model, cvec)
 
-            # Print information, if we are at the end of each stage 
-            if i + 1 == self.stage_list[stage_index] :
+            # Print information, if we are at the end of current stage or in the last step
+            if i + 1 == self.stage_list[stage_index] or i + 1 == self.train_max_step :
 
                 # Compute total number of steps in this stage
                 tot_step_in_stage = i + 1 - self.stage_list[stage_index - 1]
 
-                print ('\nStage %d, Step %d to %d (total %d):' % (stage_index, self.stage_list[stage_index - 1], i, tot_step_in_stage) )
+                print ('\nStage %d, Step %d to %d (total %d steps):' % (stage_index, self.stage_list[stage_index - 1], i, tot_step_in_stage) )
 
                 if self.all_k_eigs == False :
                     mean_kth_eig /= tot_step_in_stage
@@ -510,13 +542,19 @@ class eigen_solver():
                         var_eig_vals[ii] = var_eig_vals[ii] / tot_step_in_stage - mean_eig_vals[ii]**2
                         print ('  %dth eig:  mean=%.4f, var=%.4f' % (ii+1, mean_eig_vals[ii], math.sqrt(var_eig_vals[ii])) )
 
-                # Compute mean of averaged model, shift mean value and normalize
-                self.update_averaged_model(tot_step_in_stage)
 
-                # Save networks to file for each stage
+                self.update_mean_and_var_of_model(self.model)
+                # Save networks to file 
                 file_name = './data/%s_stage%d.pt' % (self.eig_file_name_prefix, stage_index)
+                torch.save(self.model, file_name)
+
+                # Take average of previous steps
+                for param in self.averaged_model.parameters():
+                    param /= tot_step_in_stage
+                self.update_mean_and_var_of_model(self.averaged_model)
+                # Save networks to file 
+                file_name = './data/%s_stage%d_averaged.pt' % (self.eig_file_name_prefix, stage_index)
                 torch.save(self.averaged_model, file_name)
-                print( '  Neuron neworks at stage %d are saved to %s' % (stage_index, file_name) )
 
                 if self.all_k_eigs == False :
                     # Also save the c vector to file
@@ -577,6 +615,11 @@ class eigen_solver():
         # Size of the trajectory data
         self.K = self.X_vec.shape[0]
 
+        if self.batch_uniform_weight == True : 
+            self.cum_weights = torch.range(1, self.K)
+        else :
+            self.cum_weights = torch.cumsum(self.weights)
+
         if len(self.nn_features) > 0 :
             # Include the feature layer and the output layers of neural network
             self.arch_list = [2 * len(self.nn_features)] + self.arch_list + [1]
@@ -614,10 +657,11 @@ class eigen_solver():
         self.train()
 
         # Output training results
-
         file_name = './data/%s.pt' % (self.eig_file_name_prefix)
+        torch.save(self.model, file_name)
+
+        file_name = './data/%s_averaged.pt' % (self.eig_file_name_prefix)
         torch.save(self.averaged_model, file_name)
-        print( '\nNeuron neworks after training are saved to %s' % (file_name) )
 
         if self.all_k_eigs == False :
             file_name = './data/cvec.txt' 
