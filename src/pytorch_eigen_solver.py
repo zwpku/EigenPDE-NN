@@ -543,10 +543,10 @@ class eigen_solver():
                         print ('  %dth eig:  mean=%.4f, var=%.4f' % (ii+1, mean_eig_vals[ii], math.sqrt(var_eig_vals[ii])) )
 
 
-                self.update_mean_and_var_of_model(self.model)
+                model = self.update_mean_and_var_of_model(self.model)
                 # Save networks to file 
                 file_name = './data/%s_stage%d.pt' % (self.eig_file_name_prefix, stage_index)
-                torch.save(self.model, file_name)
+                torch.save(model, file_name)
 
                 # Take average of previous steps
                 for param in self.averaged_model.parameters():

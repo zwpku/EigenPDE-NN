@@ -42,9 +42,10 @@ class MySequential(torch.nn.Module):
             torch.nn.init.normal_(tt.bias, 0, 0.5)
 
     def shift_and_normalize(self, mean, var) :
-        self.linears[-1].bias -= mean 
-        self.linears[-1].weight /= torch.sqrt(var) 
-        self.linears[-1].bias /= torch.sqrt(var)
+        with torch.no_grad() :
+            self.linears[-1].bias -= mean 
+            self.linears[-1].weight /= torch.sqrt(var) 
+            self.linears[-1].bias /= torch.sqrt(var)
 
     def forward(self, x):
 
