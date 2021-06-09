@@ -180,6 +180,12 @@ class eigen_solver():
             torch.nn.init.zeros_(param)
             param.requires_grad=False
 
+    def copy_model_to_bak(self, cvec):
+        for i in range(self.k):
+            idx = cvec[i]
+            for param_tensor in self.model.nets[idx].state_dict():
+                self.model_bak.nets[i].state_dict()[param_tensor].copy_(self.model.nets[idx].state_dict()[param_tensor].detach())
+
     def record_model_parameters(self, des, src, cvec):
         if self.all_k_eigs : 
             for i in range(self.k):
@@ -209,7 +215,6 @@ class eigen_solver():
         # Step 2 and 3
         model.shift_and_normalize(mean_of_nn, var_of_nn) 
 
-        return model 
 
     """
       Update the learning rate of optimizer, when a new training stage starts. 
@@ -318,6 +323,7 @@ class eigen_solver():
 
         print('Total constraint steps: %d,   constraints= [%.4e, %.4e]' % (constraint_step_num, penalty[0], penalty[1]), flush=True)  
 
+    # This function is used for test purpose. It will be deleted soon. 
     def test_update_step(self, bsz, alpha_vec):
         # Randomly generate indices of samples from data set according to their weights
         x_batch_index = random.sample(range(self.K), bsz)
@@ -509,8 +515,8 @@ class eigen_solver():
                     self.constraint_update_step(bsz)
 
             # Train neuron networks to minimize loss 
-            #eig_vals, cvec, loss, non_penalty_loss, penalty = self.update_step(bsz, alpha_vec)
-            eig_vals, cvec, loss, non_penalty_loss, penalty = self.test_update_step(bsz, alpha_vec)
+            eig_vals, cvec, loss, non_penalty_loss, penalty = self.update_step(bsz, alpha_vec)
+            #eig_vals, cvec, loss, non_penalty_loss, penalty = self.test_update_step(bsz, alpha_vec)
 
             # Update the statistics of eigenvalues
             if self.all_k_eigs :
@@ -542,11 +548,12 @@ class eigen_solver():
                         var_eig_vals[ii] = var_eig_vals[ii] / tot_step_in_stage - mean_eig_vals[ii]**2
                         print ('  %dth eig:  mean=%.4f, var=%.4f' % (ii+1, mean_eig_vals[ii], math.sqrt(var_eig_vals[ii])) )
 
-
-                model = self.update_mean_and_var_of_model(self.model)
+                self.zero_model_parameters(self.model_bak)
+                self.copy_model_to_bak(cvec)
+                self.update_mean_and_var_of_model(self.model_bak)
                 # Save networks to file 
                 file_name = './data/%s_stage%d.pt' % (self.eig_file_name_prefix, stage_index)
-                torch.save(model, file_name)
+                torch.save(self.model_bak, file_name)
 
                 # Take average of previous steps
                 for param in self.averaged_model.parameters():
@@ -604,10 +611,6 @@ class eigen_solver():
         # Load trajectory data (states and their weights)
         self.X_vec, self.weights = self.load_data_from_text_file()
 
-        # Convert to torch type 
-        self.X_vec = torch.from_numpy(self.X_vec)
-        self.weights = torch.from_numpy(self.weights)
-
         if self.weights.min() <= -1e-8 :
             print ( 'Error: weights of states can not be negative (min=%.4e)!' % (self.weights.min()) )
             sys.exit()
@@ -616,9 +619,13 @@ class eigen_solver():
         self.K = self.X_vec.shape[0]
 
         if self.batch_uniform_weight == True : 
-            self.cum_weights = torch.range(1, self.K)
+            self.cum_weights = np.arange(1, self.K+1)
         else :
-            self.cum_weights = torch.cumsum(self.weights)
+            self.cum_weights = np.cumsum(self.weights)
+
+        # Convert to torch type 
+        self.X_vec = torch.from_numpy(self.X_vec)
+        self.weights = torch.from_numpy(self.weights)
 
         if len(self.nn_features) > 0 :
             # Include the feature layer and the output layers of neural network
@@ -630,11 +637,14 @@ class eigen_solver():
         # Initialize networks 
         self.model = network_arch.MyNet(self.arch_list, self.ReLU_flag, self.k, self.nn_features)
 
+        self.model_bak = network_arch.MyNet(self.arch_list, self.ReLU_flag, self.k, self.nn_features)
+
         # These networks record training results of several consecutive training steps
         self.averaged_model = network_arch.MyNet(self.arch_list, self.ReLU_flag, self.k, self.nn_features)
 
         # Use double precision
         self.model.double()
+        self.model_bak.double()
         self.averaged_model.double()
 
         # Initialize Adam optimizier, with initial learning rate for stage 0
@@ -658,7 +668,7 @@ class eigen_solver():
 
         # Output training results
         file_name = './data/%s.pt' % (self.eig_file_name_prefix)
-        torch.save(self.model, file_name)
+        torch.save(self.model_bak, file_name)
 
         file_name = './data/%s_averaged.pt' % (self.eig_file_name_prefix)
         torch.save(self.averaged_model, file_name)
