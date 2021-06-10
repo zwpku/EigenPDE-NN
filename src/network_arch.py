@@ -22,7 +22,7 @@ class Polynomial22(torch.nn.Module):
         #return tmp
 
 class MySequential(torch.nn.Module):
-    def __init__(self, size_list, ReLU_flag, features):
+    def __init__(self, size_list, activation_name, features):
         super(MySequential, self).__init__()
 
         # Be careful, not just use: self.nn_dims = size_list 
@@ -31,10 +31,16 @@ class MySequential(torch.nn.Module):
         self.num_features = len(self.features)
 
         self.linears = torch.nn.ModuleList([torch.nn.Linear(self.nn_dims[i], self.nn_dims[i+1]) for i in range(len(self.nn_dims)-1)])
-        if ReLU_flag :
-            self.activations = torch.nn.ModuleList([torch.nn.ReLU() for i in range(len(self.nn_dims)-2)])
-        else :
-            self.activations = torch.nn.ModuleList([torch.nn.Tanh() for i in range(len(self.nn_dims)-2)])
+
+        try :
+            activation = getattr(torch.nn, activation_name) 
+            print ('[Info] Build NN with activation function %s.' % activation_name)
+        except : 
+            #self.activations = torch.nn.ModuleList([activation()  for i in range(len(self.nn_dims)-2)])
+            print ('[Warning] No activation function with name %s. Use CELU instead' % activation_name)
+            activation = torch.nn.CELU
+
+        self.activations = torch.nn.ModuleList([activation()  for i in range(len(self.nn_dims)-2)])
 
         # initialize the tensors
         for tt in self.linears:
@@ -80,10 +86,10 @@ class MySequential(torch.nn.Module):
 
 # Network whose ith output gives the ith eigenfunction
 class MyNet(torch.nn.Module):
-    def __init__(self, size_list, ReLU_flag, d_out, features):
+    def __init__(self, size_list, activation_name, d_out, features):
         super(MyNet, self).__init__()
         self.d_out = d_out
-        self.nets = torch.nn.ModuleList([MySequential(size_list, ReLU_flag, features) for i in range(d_out)])
+        self.nets = torch.nn.ModuleList([MySequential(size_list, activation_name, features) for i in range(d_out)])
         #self.nets = torch.nn.ModuleList([Polynomial22(d_in=d_in, d_out=1) for i in range(d_out)])
 
     def shift_and_normalize(self, mean_list, var_list) :

@@ -41,7 +41,7 @@ class eigen_solver():
         self.use_Rayleigh_quotient = Param.use_Rayleigh_quotient
         self.use_reduced_2nd_penalty = Param.use_reduced_2nd_penalty
 
-        self.ReLU_flag = Param.ReLU_flag
+        self.activation_name = Param.activation_name
 
         self.nn_features = []
         if Param.nn_features != None :
@@ -619,12 +619,11 @@ class eigen_solver():
             self.model.train()
         else :
             # Initialize networks 
-            self.model = network_arch.MyNet(self.arch_list, self.ReLU_flag, self.k, self.nn_features)
-
-        self.model_bak = network_arch.MyNet(self.arch_list, self.ReLU_flag, self.k, self.nn_features)
+            self.model = network_arch.MyNet(self.arch_list, self.activation_name, self.k, self.nn_features) 
+        self.model_bak = network_arch.MyNet(self.arch_list, self.activation_name, self.k, self.nn_features)
 
         # These networks record training results of several consecutive training steps
-        self.averaged_model = network_arch.MyNet(self.arch_list, self.ReLU_flag, self.k, self.nn_features)
+        self.averaged_model = network_arch.MyNet(self.arch_list, self.activation_name, self.k, self.nn_features)
 
         # Use double precision
         self.model.double()

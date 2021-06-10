@@ -52,8 +52,8 @@ class Param:
         # Architectual of neural networks
         self.inner_arch_size_list = [int(x) for x in config['NeuralNetArch'].get('arch_size_list').split(',')]
 
-        # Use ReLu or Tanh as activation functions
-        self.ReLU_flag = config['NeuralNetArch'].getboolean('ReLU_flag')
+        # Name of activation function
+        self.activation_name = config['NeuralNetArch'].get('activation_name')
 
         try:
             self.nn_features = config['NeuralNetArch']['features']
