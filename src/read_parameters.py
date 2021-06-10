@@ -64,6 +64,12 @@ class Param:
         # Total gradient steps
         self.train_max_step = config['Training'].getint('train_max_step')
 
+        # Whether start from a trained model 
+        self.load_init_model = config['Training'].getboolean('load_init_model')
+
+        # the filename of trained model
+        self.init_model_name = config['Training'].get('init_model_name')
+
         #Total batch size 
         self.batch_size_list = [int(x) for x in config['Training'].get('batch_size_list').split(',')] 
 

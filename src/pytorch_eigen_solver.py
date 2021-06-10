@@ -57,6 +57,10 @@ class eigen_solver():
 
         self.train_max_step = Param.train_max_step
 
+        self.load_init_model = Param.load_init_model
+
+        self.init_model_name = Param.init_model_name
+
         self.include_constraint_step = Param.include_constraint_step
 
         self.penalty_method = True 
@@ -322,34 +326,6 @@ class eigen_solver():
                 exit(1)
 
         print('Total constraint steps: %d,   constraints= [%.4e, %.4e]' % (constraint_step_num, penalty[0], penalty[1]), flush=True)  
-
-    # This function is used for test purpose. It will be deleted soon. 
-    def test_update_step(self, bsz, alpha_vec):
-        # Randomly generate indices of samples from data set according to their weights
-        x_batch_index = random.sample(range(self.K), bsz)
-
-        #  Choose samples corresonding to those indices,
-        #  and reshape the array to avoid the problem when dim=1
-        x_batch = torch.reshape(self.X_vec[x_batch_index], (bsz, self.dim))
-
-        # Evaluate function value on data
-        y = self.model(x_batch)
-
-        b_weights = self.weights[x_batch_index]
-
-        loss = ((y[:,0] - b_weights)**2).sum()
-
-        # Update training parameters
-        self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
-
-        eig_vals = np.zeros(self.k)
-        cvec = range(self.k)
-        non_penalty_loss = 0
-        penalty = np.zeros(2)
-
-        return eig_vals, cvec, loss, non_penalty_loss, penalty
 
     """
       This function calculates the loss function, 
@@ -634,8 +610,16 @@ class eigen_solver():
             # Include the input/output layers of neural network
             self.arch_list = [self.dim] + self.arch_list + [1]
 
-        # Initialize networks 
-        self.model = network_arch.MyNet(self.arch_list, self.ReLU_flag, self.k, self.nn_features)
+
+        # Load trained neural network
+        if self.load_init_model == True :
+            print( '\n[Info] Load init model from: %s\n' % self.init_model_name )
+            file_name = './data/%s' % (self.init_model_name)
+            self.model = torch.load(file_name)
+            self.model.train()
+        else :
+            # Initialize networks 
+            self.model = network_arch.MyNet(self.arch_list, self.ReLU_flag, self.k, self.nn_features)
 
         self.model_bak = network_arch.MyNet(self.arch_list, self.ReLU_flag, self.k, self.nn_features)
 

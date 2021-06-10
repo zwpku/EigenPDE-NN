@@ -47,24 +47,28 @@ class MySequential(torch.nn.Module):
             self.linears[-1].weight /= torch.sqrt(var) 
             self.linears[-1].bias /= torch.sqrt(var)
 
-    def forward(self, x):
+    def extract_features(self, x):
+        xf = torch.zeros(x.shape[0], 2 * self.num_features).double()
+        num_atoms = int(x.shape[1] / 3)
+        x = x.reshape((-1, num_atoms, 3))
+        # Compute diheral angles for each group of 4 atoms
+        for i in range(self.num_features) :
+            ag = [int(xx) for xx in self.features[i][1:]]
+            r12 = x[:, ag[1], :] - x[:, ag[0], :]
+            r23 = x[:, ag[2], :] - x[:, ag[1], :]
+            r34 = x[:, ag[3], :] - x[:, ag[2], :]
+            n1 = torch.cross(r12, r23)
+            n2 = torch.cross(r23, r34)
+            cos_phi = (n1*n2).sum(dim=1)
+            sin_phi = (n1 * r34).sum(dim=1) * torch.norm(r23, dim=1)
+            xf[:, 2*i] = cos_phi
+            xf[:, 2*i+1] = sin_phi
 
+        return xf
+
+    def forward(self, x):
         if self.num_features > 0 :
-            xf = torch.zeros(x.shape[0], 2 * self.num_features).double()
-            num_atoms = int(x.shape[1] / 3)
-            x = x.reshape((-1, num_atoms, 3))
-            # Compute diheral angles for each group of 4 atoms
-            for i in range(self.num_features) :
-                ag = [int(xx) for xx in self.features[i][1:]]
-                r12 = x[:, ag[1], :] - x[:, ag[0], :]
-                r23 = x[:, ag[2], :] - x[:, ag[1], :]
-                r34 = x[:, ag[3], :] - x[:, ag[2], :]
-                n1 = torch.cross(r12, r23)
-                n2 = torch.cross(r23, r34)
-                cos_phi = (n1*n2).sum(dim=1)
-                sin_phi = (n1 * r34).sum(dim=1) * torch.norm(r23, dim=1)
-                xf[:, 2*i] = cos_phi
-                xf[:, 2*i+1] = sin_phi
+            xf = self.extract_features(x)
         else :
             xf = x
 
