@@ -67,9 +67,9 @@ class MySequential(torch.nn.Module):
             n2 = torch.cross(r23, r34)
             cos_phi = (n1*n2).sum(dim=1)
             sin_phi = (n1 * r34).sum(dim=1) * torch.norm(r23, dim=1)
-            xf[:, 2*i] = cos_phi
-            xf[:, 2*i+1] = sin_phi
-
+            radius = torch.sqrt(cos_phi**2 + sin_phi**2)
+            xf[:, 2*i] = cos_phi / radius  
+            xf[:, 2*i+1] = sin_phi / radius
         return xf
 
     def forward(self, x):
