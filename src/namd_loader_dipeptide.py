@@ -49,10 +49,11 @@ class namd_data_loader() :
         num_data = len(self.angles)
 
         fig, ax = plt.subplots(1,1)
-        plt.hist(self.weights, bins=30)
-        filename = './fig/weights_hist1d.eps' 
+        plt.plot(np.sort(self.weights))
+        plt.yscale('log')
+        filename = './fig/weights_sorted_in_1d.eps' 
         plt.savefig(filename)
-        print ('\n1d histgram of weights saved to: %s' % filename)
+        print ('\n1d sorted weights saved to: %s' % filename)
 
         # Count histgram and weights 
         for i in range (num_data):
@@ -63,6 +64,25 @@ class namd_data_loader() :
             angle_counter[idx, idy] += 1
             weight_counter[idx, idy] += self.weights[i]
 
+        plt.clf()
+        fig, ax = plt.subplots(1,1)
+        # Show the angle counting data in 2d plot
+        h = ax.imshow(angle_counter.T, extent=[-180,180, -180, 180], cmap='jet', origin='lower', vmax=10)
+        plt.colorbar(h)
+        filename = './fig/count_of_angles.eps' 
+        plt.savefig(filename)
+        print ('\nPlot of 2d count data saved to: %s' % filename)
+
+        plt.clf()
+        fig, ax = plt.subplots(1,1)
+        # Plot may not be smooth at states where counter is zero
+        h = ax.imshow(weight_counter.T, extent=[-180,180, -180, 180], cmap='jet', origin='lower', norm=mpl.colors.LogNorm())
+        plt.colorbar(h)
+        filename = './fig/tot_weights_of_angles.eps' 
+        plt.savefig(filename)
+
+        print ('Plot of total weight for each 2d-cell saved to: %s\n' % filename)
+
         # Average weights for each grid cell
         for i in range (numx):
             for j in range (numy):
@@ -70,17 +90,6 @@ class namd_data_loader() :
                     weight_counter[i,j] /= angle_counter[i,j]
                 else :
                     weight_counter[i,j] = 1e-5
-
-        plt.clf()
-        fig, ax = plt.subplots(1,1)
-        # Show the angle counting data in 2d plot
-        h = ax.imshow(angle_counter.T, extent=[-180,180, -180, 180], cmap='jet', origin='lower', vmax=10)
-        plt.colorbar(h)
-
-        filename = './fig/count_of_angles.eps' 
-        plt.savefig(filename)
-
-        print ('\nPlot of 2d count data saved to: %s' % filename)
 
         plt.clf()
         fig, ax = plt.subplots(1,1)
