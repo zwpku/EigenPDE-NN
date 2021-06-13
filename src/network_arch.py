@@ -72,6 +72,13 @@ class MySequential(torch.nn.Module):
             xf[:, 2*i+1] = sin_phi / radius
         return xf
 
+    def feature_forward(self, xf):
+        for i in range(len(self.nn_dims) - 1) :
+            xf = self.linears[i](xf)
+            if i < len(self.nn_dims) - 2 :
+                xf = self.activations[i](xf)
+        return xf
+
     def forward(self, x):
         if self.num_features > 0 :
             xf = self.extract_features(x)
@@ -95,6 +102,9 @@ class MyNet(torch.nn.Module):
     def shift_and_normalize(self, mean_list, var_list) :
         for i in range(self.d_out) :
             self.nets[i].shift_and_normalize(mean_list[i], var_list[i]) 
+
+    def feature_forward(self, x):
+        return torch.cat([self.nets[i].feature_forward(x) for i in range(self.d_out)], dim=1)
 
     def forward(self, x):
         return torch.cat([self.nets[i](x) for i in range(self.d_out)], dim=1)
