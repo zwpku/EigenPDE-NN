@@ -21,6 +21,11 @@ class PrepareData() :
         delta_t = self.Param.delta_t 
         # K: total numbers of states
         K = self.Param.K
+        how_often = self.Param.sde_how_often
+
+        if how_often == 0 : 
+            how_often = 1
+
         # True beta 
         beta = self.Param.beta
         # beta used in sampling 
@@ -41,24 +46,33 @@ class PrepareData() :
             X0 = X0 - PotClass.grad_V(X0.reshape(1,dim)) * delta_t + np.sqrt(2 * delta_t / SDE_beta) * xi
 
         # The last column contains the importance sampling weights of the states
-        X_vec = np.zeros((K, dim+1))
+        X_vec = np.zeros((K//how_often, dim+1))
         print_step_interval = int(K / 10)
 
         print ("Next, generate %d states" % K)
         tot_weight = 0.0
+        kk = 0 
         for i in range(K):
             xi = np.random.randn(dim)
             X0 = X0 - PotClass.grad_V(X0.reshape(1,dim)) * delta_t + np.sqrt(2 * delta_t / SDE_beta) * xi
-            X_vec[i, 0:dim] = X0
-            # Set weights in the last column
-            X_vec[i][dim] = np.exp(-(beta - SDE_beta) * PotClass.V(X0.reshape(1,dim)) )
-            tot_weight += X_vec[i][dim]
+
+            if i % how_often == 0 :
+                X_vec[kk, 0:dim] = X0
+                # Set weights in the last column
+                X_vec[kk][dim] = np.exp(-(beta - SDE_beta) * PotClass.V(X0.reshape(1,dim)) )
+                tot_weight += X_vec[kk][dim]
+                kk += 1
+
             if i % print_step_interval == 0:
                print ("%4.1f%% finished." % (i / K * 100), flush=True)
-        X_vec[:,dim] /= (tot_weight / K)
+
+        X_vec[:,dim] /= (tot_weight / kk)
+
+        index = X_vec[:,0] < 0
+        print (sum(X_vec[index,1]), sum(X_vec[:,1]))
 
         states_file_name = './data/%s.txt' % (data_filename_prefix)
-        np.savetxt(states_file_name, X_vec, header='%d %d' % (K, dim), comments="", fmt="%.10f")
+        np.savetxt(states_file_name, X_vec[:kk,:], header='%d %d' % (kk, dim), comments="", fmt="%.10f")
         print("\nsampled data are stored to: %s" % states_file_name)
 
     def prepare_data(self) :

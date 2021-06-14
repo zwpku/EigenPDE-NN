@@ -14,6 +14,7 @@ class Param:
         self.delta_t = config['sample_data'].getfloat('delta_t')
         # K: total numbers of states
         self.K = int(config['sample_data'].getfloat('N_state'))
+        self.sde_how_often = int(config['sample_data'].getfloat('how_often'))
         # Coefficient under which the data is sampled. 
         # Using biased data (reweighting) are used when 
         # it is different from the value of beta.

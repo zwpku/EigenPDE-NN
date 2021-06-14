@@ -24,6 +24,7 @@ if dim == 1:
     xvec = np.linspace(xmin, xmax, nbin)
     dx = (xmax - xmin) / nbin
     plt.plot(xvec, h / (sum(h) * dx))
+    plt.yscale('log')
     plt.title('Prob. density of training data, %s' % task_name)
     fig_file_name = '../%s/fig/hist_states.eps' % (working_dir_name)
     fig.savefig(fig_file_name, bbox_inches='tight')

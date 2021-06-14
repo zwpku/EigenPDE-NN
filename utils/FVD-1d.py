@@ -33,6 +33,8 @@ nx = Param.nx
 # Mesh size
 dx = (xmax - xmin) / nx
 
+print (nx)
+
 # Compute one eigenvalue more than required
 ev_num = Param.k + 1
 

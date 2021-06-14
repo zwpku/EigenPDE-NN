@@ -234,6 +234,7 @@ class eigen_solver():
 
         # Randomly generate indices of samples from data set 
         x_batch_index = random.choices(range(self.K), cum_weights=self.cum_weights, k=batch_size)
+        #x_batch_index = range(self.K)
 
         #  Choose samples corresonding to those indices,
         #  and reshape the array to avoid the problem when dim=1
@@ -319,7 +320,7 @@ class eigen_solver():
 
             if loss < self.constraint_tol : # Success 
                 flag = False
-            if constraint_step_num % 100 == 0 :  # Print information
+            if constraint_step_num % 10 == 0 :  # Print information
                print('Constraint steps:%d,   constraints= [%.4e, %.4e]' % (constraint_step_num, penalty[0], penalty[1]), flush=True)  
             if constraint_step_num >= self.constraint_max_step : # Failed
                 print("Constraint tolerance %.4f not reached in %d steps.\n" % (self.constraint_tol, constraint_step_num), flush=True)  
@@ -526,7 +527,7 @@ class eigen_solver():
 
                 self.zero_model_parameters(self.model_bak)
                 self.copy_model_to_bak(cvec)
-                self.update_mean_and_var_of_model(self.model_bak)
+                #self.update_mean_and_var_of_model(self.model_bak)
                 # Save networks to file 
                 file_name = './data/%s_stage%d.pt' % (self.eig_file_name_prefix, stage_index)
                 torch.save(self.model_bak, file_name)

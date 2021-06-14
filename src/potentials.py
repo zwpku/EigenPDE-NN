@@ -9,7 +9,7 @@ class PotClass():
         self.pot_id = pot_id
 
     # f(x)-cx, where c>0, f(0)=b, f(a)=f(-a)=0, and f(x)->\infty quadratically
-    def modified_dw1d(self, xvec, a=1.0, b=1.0, c=0.6):
+    def modified_dw1d(self, xvec, a=1.0, b=1.0, c=0.7):
         y = np.zeros(len(xvec))
         for idx in range(len(xvec)) :
             x = xvec[idx]
@@ -45,9 +45,9 @@ class PotClass():
     # pot_id=2
     # 1d double well
     def v_1d_dw(self, x):
-        return self.modified_dw1d(x, b=1) 
+        return self.modified_dw1d(x, b=1.5, c=1.0) 
     def grad_v_1d_dw(self, x): 
-        return self.grad_modified_dw1d(x,b=1)
+        return self.grad_modified_dw1d(x,b=1.5, c=1.0)
 
     # pot_id=3 
     # 2d quadratic
