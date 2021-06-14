@@ -16,18 +16,17 @@ if not os.path.exists('./fig'):
     print ("Directory ./fig created.")
 
 # List of possible scripts 
-script_name_list = ["../utils/prepare_data.py", "../utils/train_nn.py", "../utils/eval_nn_on_grid.py", "../utils/eval_nn_on_sample_data.py", "../utils/eval_nn_on_2d_feature_mesh.py", "../utils/eval_potential_on_grid.py", "../utils/FVD-1d.py", "../utils/FVD-2d.py -eps_monitor"]
+script_name_list = ["../utils/prepare_data.py", "../utils/train_nn.py", "../utils/eval_nn_on_grid.py", "../utils/eval_nn_on_sample_data.py", "../utils/eval_nn_on_2d_feature_mesh.py", "../utils/FVD-1d.py", "../utils/FVD-2d.py -eps_monitor"]
 
 script_info_list = ["Prepare training data",  
         "Solve eigenvalue PDE by training neural networks", 
         "Evaluate neural network on 1d or 2d grid", 
         "Evaluate neural network on sample data", 
         "Evaluate neural network on 2d feature grid", 
-        "Evaluate potential on grid", 
         "Solve 1D eigenvalue PDE by finite volume method", 
         "Solve 2D eigenvalue PDE by finite volume method"]
 
-task_id = 4
+task_id = 0
 
 # Run one of the scripts above
 print ("Task %d: %s, \nCommand: %s\n" % (task_id, script_info_list[task_id], script_name_list[task_id]), flush=True)
