@@ -13,6 +13,9 @@ class PrepareData() :
 
         PotClass = potentials.PotClass(self.Param.dim, self.Param.pot_id, self.Param.stiff_eps)
 
+        PotClass.output_potential(self.Param)
+
+        print ("Generate training data by Euler-Maruyama scheme\n")
         dim = self.Param.dim
         # Step-size in the numerical scheme
         delta_t = self.Param.delta_t 
@@ -67,6 +70,5 @@ class PrepareData() :
         else :
             # Sample data by simulating SDE
 
-            print ("Generate training data by Euler-Maruyama scheme\n")
             self.generate_sample_data() 
 

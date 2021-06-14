@@ -8,8 +8,8 @@ class PotClass():
         self.stiff_eps = stiff_eps 
         self.pot_id = pot_id
 
-    # f(x), s.t.  f(0)=b, f(a)=f(-a)=0, and f(x)->\infty quadratically
-    def modified_dw1d(self, xvec, a=1.0, b=1.0):
+    # f(x)-cx, where c>0, f(0)=b, f(a)=f(-a)=0, and f(x)->\infty quadratically
+    def modified_dw1d(self, xvec, a=1.0, b=1.0, c=0.6):
         y = np.zeros(len(xvec))
         for idx in range(len(xvec)) :
             x = xvec[idx]
@@ -19,10 +19,10 @@ class PotClass():
               y[idx] = b * pi**2 / (4 * a**2) * (x + a) ** 2
             if x >= -a and x <= a :
               y[idx] = b * 0.5 * (math.cos(x / a * pi) + 1.0)
-            y[idx] -= 0.6 * x
+            y[idx] -= c * x
         return y
 
-    def grad_modified_dw1d(self, xvec, a=1.0, b=1.0): 
+    def grad_modified_dw1d(self, xvec, a=1.0, b=1.0, c=0.6): 
         y = np.zeros(len(xvec))
         for idx in range(len(xvec)) :
             x = xvec[idx]
@@ -32,7 +32,7 @@ class PotClass():
                 y[idx] = b * pi**2 / (2 * a**2) * (x + a)
             if x >= -a and x <= a : 
                 y[idx] = - b * pi / (2 * a) * math.sin(x * pi / a)
-            y[idx] -= 0.6
+            y[idx] -= c
         return y.reshape((-1, 1))
 
     # pot_id=1
@@ -122,6 +122,7 @@ class PotClass():
     def grad_v_nd_3well_in_x01(self, x):
         return np.concatenate((self.grad_v_2d_3well(x[:,0:2]), np.array([1.0 * 10.0 * x[:,i] for i in range(2,self.dim)]).T), axis=1)
 
+
     def V(self, x):
         if self.pot_id == 1 :
             return self.v_1d_quadratic(x)
@@ -153,4 +154,48 @@ class PotClass():
             return self.grad_v_2d_curved(x_vec)
         if self.pot_id == 7 :
             return self.grad_v_nd_3well_in_x01(x_vec)
+
+    def output_potential(self, Param) :
+        if self.dim == 1 :
+            # Grid in R
+            xmin = Param.xmin
+            xmax = Param.xmax
+            nx = Param.nx
+            dx = (xmax - xmin) / nx
+            xvec = np.linspace(xmin, xmax, nx).reshape(-1, 1)
+            pot_vec = self.V(xvec) 
+            pot_filename = './data/pot.txt'
+            np.savetxt(pot_filename, np.reshape(pot_vec, nx), header='%f %f %d\n' % (xmin,xmax,nx), comments="", fmt="%.10f")
+            print("Potential is stored to: %s\n" % (pot_filename))
+
+        if self.dim >= 2 :
+            # Grid in R^2
+            xmin = Param.xmin
+            xmax = Param.xmax
+            nx = Param.nx
+            ymin = Param.ymin
+            ymax = Param.ymax
+            ny = Param.ny
+
+            dx = (xmax - xmin) / nx
+            dy = (ymax - ymin) / ny
+
+            x1_axis = np.linspace(xmin, xmax, nx)
+            x2_axis = np.linspace(ymin, ymax, ny)
+
+            x1_vec = np.tile(x1_axis, len(x2_axis)).reshape(nx * ny, 1)
+            x2_vec = np.repeat(x2_axis, len(x1_axis)).reshape(nx * ny, 1)
+
+            # When dim>2, the components in the other dimensions are set to zero.
+            other_x = np.tile(np.zeros(dim-2), nx* ny).reshape(nx* ny, dim-2)
+            x2d = np.concatenate((x1_vec, x2_vec, other_x), axis=1)
+
+            pot_vec = self.V(x2d)
+
+            print ("Range of potential: [%.3f, %.3f]" % (min(pot_vec), max(pot_vec)) )
+
+            pot_filename = './data/pot.txt'
+            np.savetxt(pot_filename, np.reshape(pot_vec, (ny, nx)), header='%f %f %d\n%f %f %d' % (xmin,xmax,nx, ymin, ymax, ny), comments="", fmt="%.10f")
+
+            print("Potential V is stored to: %s\n" % (pot_filename))
 
