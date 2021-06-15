@@ -19,6 +19,7 @@ class namd_data_loader() :
         self.which_data_to_use = Param.which_data_to_use
         self.use_biased_data = Param.use_biased_data
         self.weight_threshold_to_remove_states = Param.weight_threshold_to_remove_states
+        self.load_data_how_often = Param.load_data_how_often
         self.align_data_flag =  Param.align_data_flag
 
         self.namd_data_filename_prefix = Param.namd_data_filename_prefix
@@ -67,7 +68,7 @@ class namd_data_loader() :
         plt.clf()
         fig, ax = plt.subplots(1,1)
         # Show the angle counting data in 2d plot
-        h = ax.imshow(angle_counter.T, extent=[-180,180, -180, 180], cmap='jet', origin='lower', vmax=10)
+        h = ax.imshow(angle_counter.T, extent=[-180,180, -180, 180], cmap='jet', origin='lower')
         plt.colorbar(h)
         filename = './fig/count_of_angles.eps' 
         plt.savefig(filename)
@@ -89,7 +90,7 @@ class namd_data_loader() :
                 if (angle_counter[i,j] > 0):
                     weight_counter[i,j] /= angle_counter[i,j]
                 else :
-                    weight_counter[i,j] = 1e-5
+                    weight_counter[i,j] = 1e-12
 
         plt.clf()
         fig, ax = plt.subplots(1,1)
@@ -116,6 +117,7 @@ class namd_data_loader() :
 
         # For test purpose
         print ('\nAngles of first 5 states:\n\t', angles[0:5,:])
+
 
         self.angles = angles[:,1:]
 
@@ -168,7 +170,7 @@ class namd_data_loader() :
 
         print ('\nLength of pmf data along trajectory: %s\n\tmin-max of pmf=(%.3f, %.3f)' % (len(pmf_along_colvars), min(pmf_along_colvars), max(pmf_along_colvars)) )
 
-        print ('\t(min,max,sum) of weights=(%.3e, %.3e, %.3e)' % (min(weights_along_colvars), max(weights_along_colvars), sum(weights_along_colvars) ) )
+        print ('\t(min,max,sum) of weights=(%.3e, %.3e, %.3e)\n' % (min(weights_along_colvars), max(weights_along_colvars), sum(weights_along_colvars) ) )
 
         self.weights = weights_along_colvars
 
@@ -180,7 +182,7 @@ class namd_data_loader() :
                 core_weight = core_weight + self.weights[i]
                 max_w = max(max_w, self.weights[i])
 
-        print ('Weights for C7ax (max, sum-c7ax, sum, percentage): ', max_w, core_weight, self.weights.sum(), core_weight / self.weights.sum() )
+        print ('Weights for C7ax (max, sum-c7ax, sum, percentage):\n\t', max_w, core_weight, self.weights.sum(), core_weight / self.weights.sum() )
 
     def load_namd_traj(self):
         # Names of files containing trajectory data
@@ -195,8 +197,8 @@ class namd_data_loader() :
 
         total_time_traj = len(u.trajectory) * u.coord.dt * 1e-3 
 
-        print ( 'Length of trajectory: %d, dt=%.2fps, total time = %.2fns\n' % (len(u.trajectory), u.coord.dt, total_time_traj) )
-        print ("Time range of the trajectory: [%.4f, %.4f]\n" % (u.trajectory[0].time, u.trajectory[-1].time) )
+        print ( '\tLength of trajectory: %d, dt=%.2fps, total time = %.2fns' % (len(u.trajectory), u.coord.dt, total_time_traj) )
+        print ("\tTime range of the trajectory: [%.2fps, %.2fps]\n" % (u.trajectory[0].time, u.trajectory[-1].time) )
 
         self.selected_atoms = None
         angle_col_index = None
@@ -238,6 +240,8 @@ class namd_data_loader() :
 
         self.load_angles_from_colvar_traj() 
 
+        if self.which_data_to_use != 'angle' and self.angles.shape[0] != K_total : "colvars trajectoy (length=%d) does not match trajectory data (length=%d) " % (self.angles.shape[0], K_total)
+
         """
         # Test the calculation of dihedral angles 
         # Two dihedral angles for data in trajectory 
@@ -259,13 +263,9 @@ class namd_data_loader() :
         """
 
         if self.use_biased_data == True : 
-        
             print("[Info] Load PMF along states\n", flush=True)
-
             # Compute weights along trajectory according to PMF value of angles
             self.weights_of_colvars_by_pmf() 
-
-            if self.which_data_to_use != 'angle' and self.angles.shape[0] != K_total : "colvars trajectoy (length=%d) does not match trajectory data (length=%d) " % (self.angles.shape[0], K_total)
         else :
             print("[Info] Since data are unbiased, all weights are 1\n", flush=True)
             self.weights = np.ones(K_total) 
@@ -275,23 +275,26 @@ class namd_data_loader() :
         # Number of selected atoms
         self.atom_num = len(self.selected_atoms.names)
 
-        print ( '\n[Info] Loading trajectory data...\n\tNames of %d selected atoms:\n\t %s\n\tNames of angle-related atoms:\n\t %s\n' % (self.atom_num, self.selected_atoms.names, self.selected_atoms.names[angle_col_index]) )
+        print ( '\n[Info] Loading trajectory data (how_often=%d)...\n\tNames of %d selected atoms:\n\t %s\n\tNames of angle-related atoms:\n\t %s\n' % (self.load_data_how_often, self.atom_num, self.selected_atoms.names, self.selected_atoms.names[angle_col_index]) )
+
+        K = len(u.trajectory[::self.load_data_how_often])
+
+        print ( '[Info] Length of loaded trajectory: %d\n\tdt=%.2fps, total time = %.2fns' % (K, u.coord.dt * self.load_data_how_often, total_time_traj) )
 
         # Change the 3d vector to 2d vector
-        self.traj_data = np.array([self.selected_atoms.positions for ts in u.trajectory]).reshape((-1, self.atom_num * 3))
+        self.traj_data = np.array([self.selected_atoms.positions for ts in u.trajectory[::self.load_data_how_often]]).reshape((-1, self.atom_num * 3))
 
-        eff_indices = self.weights >= self.weight_threshold_to_remove_states
+        eff_indices = self.weights[::self.load_data_how_often] >= self.weight_threshold_to_remove_states
 
-        self.weights = self.weights[eff_indices]
+        self.weights = self.weights[::self.load_data_how_often][eff_indices]
         self.traj_data = self.traj_data[eff_indices]
-        self.angles = self.angles[eff_indices]
+        self.angles = self.angles[::self.load_data_how_often][eff_indices]
 
-        K = self.traj_data.shape[0]
         # Rescale weights (again) by constant 
         rescale = np.sum(self.weights) / K
         self.weights /= rescale
 
-        print ("States whose weight is below %.2e are removed. %d states left." % (self.weight_threshold_to_remove_states, self.traj_data.shape[0]) )
+        print ("\n[Info] States whose weight is below %.2e are removed. %d states left." % (self.weight_threshold_to_remove_states, self.traj_data.shape[0]) )
 
         print ('\t(min,max,sum) of weights=(%.3e, %.3e, %.3e)' % (min(self.weights), max(self.weights), sum(self.weights) ) )
 
@@ -326,7 +329,7 @@ class namd_data_loader() :
         # Save trajectory data to txt file
         states_file_name = './data/%s.txt' % (self.data_filename_prefix)
 
-        # Actual length of data (should be the same as K_total above)
+        # Actual length of loaded data 
         K = self.traj_data.shape[0]
 
         print("[Info] In total, %d states have been loaded\n" % K, flush=True)

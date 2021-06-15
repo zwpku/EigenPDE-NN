@@ -21,7 +21,7 @@ class PrepareData() :
         delta_t = self.Param.delta_t 
         # K: total numbers of states
         K = self.Param.K
-        how_often = self.Param.sde_how_often
+        how_often = self.Param.load_data_how_often
 
         if how_often == 0 : 
             how_often = 1
