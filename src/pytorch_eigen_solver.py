@@ -269,6 +269,24 @@ class eigen_solver():
         self.mean_list = [(self.y[:,idx] * self.b_weights).sum() / self.b_tot_weights for idx in range(self.k)]
         self.var_list = [(self.y[:,idx]**2 * self.b_weights).sum() / self.b_tot_weights - self.mean_list[idx]**2 for idx in range(self.k)]
 
+        """
+        self.neg_index = x_batch[:,0] < 0
+        self.pos_index = x_batch[:,0] > 0
+        self.trans_index = np.logical_and(x_batch[:,0] > -0.3, x_batch[:,0] < 0.3).type(torch.bool)
+
+        print (x_batch[self.neg_index].shape[0], x_batch[self.trans_index].shape[0], x_batch[self.pos_index].shape[0])
+        print (sum(self.b_weights[self.neg_index]), sum(self.b_weights[self.trans_index]), sum(self.b_weights[self.pos_index]))
+        print ('neg states: %d\n sum weight: %.4f (total: %.4f, ratio: %.4f)\n \
+                mean: %.4f (total: %.4f)\nvar:%.4f (total: %4f) \n' % (x_batch[neg_index].shape[0],
+                    sum(self.b_weights[neg_index]), self.b_tot_weights,
+                    sum(self.b_weights[neg_index]) / self.b_tot_weights,
+                    (self.y[neg_index,0] * self.b_weights[neg_index]).sum() / self.b_tot_weights, 
+                self.mean_list[0],
+                (self.y[neg_index,0]**2 * self.b_weights[neg_index]).sum() / self.b_tot_weights, 
+        self.var_list[0]) )
+        """
+
+
     # Penalty terms corresonding to 1st-order and 2nd-order constraints
     def penalty_terms(self) :
 
@@ -418,7 +436,7 @@ class eigen_solver():
                 cvec = np.argsort(eig_vals)
                 # Sort the eigenvalues 
                 eig_vals = eig_vals[cvec]
-        
+
             # The loss function is the linear combination of k terms.
             if self.use_Rayleigh_quotient == False :
                 # Use energies
@@ -426,6 +444,25 @@ class eigen_solver():
             else :
                 # Use Rayleigh quotients (i.e. energy divided by variance)
                 non_penalty_loss = 1.0 / (self.b_tot_weights * self.beta) * sum([self.eig_w[idx] * torch.sum((self.y_grad_vec[cvec[idx]]**2 * self.diag_coeff).sum(dim=1) * self.b_weights) / self.var_list[cvec[idx]]  for idx in range(self.k)])
+
+                """
+                partial_loss = []
+                partial_loss_noweight = []
+                for index_set in [self.neg_index, self.trans_index, self.pos_index] :
+                    num = torch.sum(index_set)
+                    print ('num=', num)
+                    neg_non_penalty_loss = 1.0 / (self.b_tot_weights * self.beta) * \
+                    sum([self.eig_w[idx] * torch.sum((self.y_grad_vec[cvec[idx]][index_set,:]**2 * self.diag_coeff).sum(dim=1) * self.b_weights[index_set]) / self.var_list[cvec[idx]]  for idx in range(self.k)])
+                    neg_non_penalty_loss_noweight = sum([self.eig_w[idx] *
+                        torch.sum((self.y_grad_vec[cvec[idx]][index_set,:]**2).sum(dim=1))
+                        / self.var_list[cvec[idx]]  for idx in range(self.k)]) / num
+
+                    partial_loss = partial_loss + [neg_non_penalty_loss.detach().item()] 
+                    partial_loss_noweight = partial_loss_noweight + [neg_non_penalty_loss_noweight.detach().item()]
+
+                print ('partial loss: ', partial_loss )
+                print ('partial loss noweight: ', partial_loss_noweight )
+                """
 
         # Always compute penalty terms, even if not used
         penalty = self.penalty_terms()

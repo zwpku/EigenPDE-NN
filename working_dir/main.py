@@ -26,7 +26,14 @@ script_info_list = ["Prepare training data",
         "Solve 1D eigenvalue PDE by finite volume method", 
         "Solve 2D eigenvalue PDE by finite volume method"]
 
-task_id = 0
+print ('Task list:')
+for idx in range(len(script_info_list)) :
+    print ('%d: %s' % (idx, script_info_list[idx])) 
+
+print ('\nChoose a task ([0-%d]): ' % (len(script_name_list)-1) )
+
+task_id = int (input())
+#task_id = 1
 
 # Run one of the scripts above
 print ("Task %d: %s, \nCommand: %s\n" % (task_id, script_info_list[task_id], script_name_list[task_id]), flush=True)
