@@ -450,7 +450,6 @@ class eigen_solver():
                 partial_loss_noweight = []
                 for index_set in [self.neg_index, self.trans_index, self.pos_index] :
                     num = torch.sum(index_set)
-                    print ('num=', num)
                     neg_non_penalty_loss = 1.0 / (self.b_tot_weights * self.beta) * \
                     sum([self.eig_w[idx] * torch.sum((self.y_grad_vec[cvec[idx]][index_set,:]**2 * self.diag_coeff).sum(dim=1) * self.b_weights[index_set]) / self.var_list[cvec[idx]]  for idx in range(self.k)])
                     neg_non_penalty_loss_noweight = sum([self.eig_w[idx] *
@@ -564,7 +563,7 @@ class eigen_solver():
 
                 self.zero_model_parameters(self.model_bak)
                 self.copy_model_to_bak(cvec)
-                #self.update_mean_and_var_of_model(self.model_bak)
+                self.update_mean_and_var_of_model(self.model_bak)
                 # Save networks to file 
                 file_name = './data/%s_stage%d.pt' % (self.eig_file_name_prefix, stage_index)
                 torch.save(self.model_bak, file_name)
