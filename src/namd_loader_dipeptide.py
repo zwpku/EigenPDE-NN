@@ -5,6 +5,7 @@ from MDAnalysis import transformations
 from MDAnalysis.analysis.dihedrals import Dihedral
 from MDAnalysis.lib.distances import calc_dihedrals
 from MDAnalysis.analysis import align, rms 
+from functools import reduce
 
 import math
 import numpy as np
@@ -111,15 +112,14 @@ class namd_data_loader() :
         # Read values of colvars trajectory 
         angles = np.loadtxt(colvar_traj_filename, skiprows=2)
 
-        # Save angles of states along trajectory
-        angle_output_file = './data/angle_along_traj.txt' 
-        np.savetxt(angle_output_file, angles[:, 1:], header='%d' % (angles.shape[0]), comments="", fmt="%.10f")
+        # Only use angles of selected states
+        self.angles = angles[::self.load_data_how_often, 1:]
 
         # For test purpose
-        print ('\nAngles of first 5 states:\n\t', angles[0:5,:])
-
-
-        self.angles = angles[:,1:]
+        print ('\nAngles of first 5 states:\n\t', self.angles[0:5,:])
+        # Save angles of states along trajectory
+        angle_output_file = './data/angle_along_traj.txt' 
+        np.savetxt(angle_output_file, self.angles, header='%d' % (self.angles.shape[0]), comments="", fmt="%.10f")
 
     # Compute weights for each sampled data
     def weights_of_colvars_by_pmf(self) :
@@ -174,15 +174,25 @@ class namd_data_loader() :
 
         self.weights = weights_along_colvars
 
-    def total_weights_C7ax(self) :
-        core_weight = 0
-        max_w = 0
-        for i in range (len(self.angles)):
-            if self.angles[i, 0] > 40 and self.angles[i, 0] < 100 :
-                core_weight = core_weight + self.weights[i]
-                max_w = max(max_w, self.weights[i])
+    def total_weights_C7eq_C7ax(self) :
 
-        print ('Weights for C7ax (max, sum-c7ax, sum, percentage):\n\t', max_w, core_weight, self.weights.sum(), core_weight / self.weights.sum() )
+        c7eq_index = reduce(np.logical_and, (self.angles[:,0] > -120, self.angles[:,0] < -70, self.angles[:,1] > 40, self.angles[:,1] < 130))
+        core_weight = np.sum(self.weights[c7eq_index])
+
+        print ('Weights (max, sum of weights, total weights, percentage) of regions:\n  C7eq:\t', np.max(self.weights[c7eq_index]), core_weight, self.weights.sum(), core_weight / self.weights.sum() )
+
+        c7ax_index = reduce(np.logical_and, (self.angles[:, 0] > 40, self.angles[:, 0] < 100, self.angles[:,1] < 0, self.angles[:,1] > -150))
+        core_weight = np.sum(self.weights[c7ax_index])
+
+        print ('  C7ax:\t', np.max(self.weights[c7ax_index]), core_weight, self.weights.sum(), core_weight / self.weights.sum() )
+
+        l_trans_index = reduce(np.logical_and, (self.angles[:,0] > -25, self.angles[:,0] < 25, self.angles[:,1] > -110, self.angles[:,1] < 0))
+        core_weight = np.sum(self.weights[l_trans_index])
+        print ('  l-channel:\t', np.max(self.weights[l_trans_index]), core_weight, self.weights.sum(), core_weight / self.weights.sum() )
+
+        r_trans_index = reduce(np.logical_and, (self.angles[:,0] > 115, self.angles[:,0] < 140, self.angles[:,1] > -170, self.angles[:,1] < -30))
+        core_weight = np.sum(self.weights[r_trans_index])
+        print ('  r-channel:\t', np.max(self.weights[r_trans_index]), core_weight, self.weights.sum(), core_weight / self.weights.sum() )
 
     def load_namd_traj(self):
         # Names of files containing trajectory data
@@ -240,7 +250,9 @@ class namd_data_loader() :
 
         self.load_angles_from_colvar_traj() 
 
-        if self.which_data_to_use != 'angle' and self.angles.shape[0] != K_total : "colvars trajectoy (length=%d) does not match trajectory data (length=%d) " % (self.angles.shape[0], K_total)
+        K = len(u.trajectory[::self.load_data_how_often])
+
+        if self.which_data_to_use != 'angle' and self.angles.shape[0] != K: "colvars trajectoy (length=%d) does not match data (length=%d) " % (self.angles.shape[0], K)
 
         """
         # Test the calculation of dihedral angles 
@@ -249,14 +261,14 @@ class namd_data_loader() :
 
         # Select relevant atoms for two angles
         selected_atoms = u.select_atoms("bynum 1 3 13 15 17")
-        traj_data = np.array([selected_atoms.positions for ts in u.trajectory[0:5]])
+        traj_data = np.array([selected_atoms.positions for ts in u.trajectory[::self.load_data_how_often][0:5]])
 
         # Angles [phi, psi] are defined by the groups of atoms 
         #    [13, 15, 17 ,1], and [15, 17 ,1, 3], respectively.  
         phi_angles = calc_dihedrals(traj_data[:,2,:], traj_data[:,3,:], traj_data[:,4,:], traj_data[:,0,:]) / math.pi * 180
         psi_angles = calc_dihedrals(traj_data[:,3,:], traj_data[:,4,:], traj_data[:,0,:], traj_data[:,1,:]) / math.pi * 180
 
-        #print ('[INFO] Angle of first 10 states:\n', angle_data[0:10,:])
+        #print ('[INFO] Angles of first 5 states:\n', angle_data[0:5,:])
         print (phi_angles[0:5])
         print (psi_angles[0:5])
         print (traj_data.reshape((-1,15)))
@@ -268,27 +280,25 @@ class namd_data_loader() :
             self.weights_of_colvars_by_pmf() 
         else :
             print("[Info] Since data are unbiased, all weights are 1\n", flush=True)
-            self.weights = np.ones(K_total) 
+            self.weights = np.ones(K) 
 
-        self.total_weights_C7ax()
+        self.total_weights_C7eq_C7ax()
 
         # Number of selected atoms
         self.atom_num = len(self.selected_atoms.names)
 
         print ( '\n[Info] Loading trajectory data (how_often=%d)...\n\tNames of %d selected atoms:\n\t %s\n\tNames of angle-related atoms:\n\t %s\n' % (self.load_data_how_often, self.atom_num, self.selected_atoms.names, self.selected_atoms.names[angle_col_index]) )
 
-        K = len(u.trajectory[::self.load_data_how_often])
-
         print ( '[Info] Length of loaded trajectory: %d\n\tdt=%.2fps, total time = %.2fns' % (K, u.coord.dt * self.load_data_how_often, total_time_traj) )
 
         # Change the 3d vector to 2d vector
         self.traj_data = np.array([self.selected_atoms.positions for ts in u.trajectory[::self.load_data_how_often]]).reshape((-1, self.atom_num * 3))
 
-        eff_indices = self.weights[::self.load_data_how_often] >= self.weight_threshold_to_remove_states
+        eff_indices = self.weights >= self.weight_threshold_to_remove_states
 
-        self.weights = self.weights[::self.load_data_how_often][eff_indices]
+        self.weights = self.weights[eff_indices]
         self.traj_data = self.traj_data[eff_indices]
-        self.angles = self.angles[::self.load_data_how_often][eff_indices]
+        self.angles = self.angles[eff_indices]
 
         # Rescale weights (again) by constant 
         rescale = np.sum(self.weights) / K
