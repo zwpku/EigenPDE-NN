@@ -45,9 +45,9 @@ class PotClass():
     # pot_id=2
     # 1d double well
     def v_1d_dw(self, x):
-        return self.modified_dw1d(x, b=1.5, c=1.0) 
+        return self.modified_dw1d(x, b=7.0, c=1.0) 
     def grad_v_1d_dw(self, x): 
-        return self.grad_modified_dw1d(x,b=1.5, c=1.0)
+        return self.grad_modified_dw1d(x,b=7.0, c=1.0)
 
     # pot_id=3 
     # 2d quadratic

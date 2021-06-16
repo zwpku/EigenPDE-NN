@@ -283,13 +283,13 @@ class eigen_solver():
 
         print (x_batch[self.neg_index].shape[0], x_batch[self.trans_index].shape[0], x_batch[self.pos_index].shape[0])
         print (sum(self.b_weights[self.neg_index]), sum(self.b_weights[self.trans_index]), sum(self.b_weights[self.pos_index]))
-        print ('neg states: %d\n sum weight: %.4f (total: %.4f, ratio: %.4f)\n \
-                mean: %.4f (total: %.4f)\nvar:%.4f (total: %4f) \n' % (x_batch[neg_index].shape[0],
-                    sum(self.b_weights[neg_index]), self.b_tot_weights,
-                    sum(self.b_weights[neg_index]) / self.b_tot_weights,
-                    (self.y[neg_index,0] * self.b_weights[neg_index]).sum() / self.b_tot_weights, 
+        print ('neg states: %d\n sum weight: %.4f (total: %.4f, ratio: %.4e)\n \
+                mean: %.4f (total: %.4f)\nvar:%.4f (total: %4f) \n' % (x_batch[self.neg_index].shape[0],
+                    sum(self.b_weights[self.neg_index]), self.b_tot_weights,
+                    sum(self.b_weights[self.trans_index]) / self.b_tot_weights,
+                    (self.y[self.neg_index,0] * self.b_weights[self.neg_index]).sum() / self.b_tot_weights, 
                 self.mean_list[0],
-                (self.y[neg_index,0]**2 * self.b_weights[neg_index]).sum() / self.b_tot_weights, 
+                (self.y[self.neg_index,0]**2 * self.b_weights[self.neg_index]).sum() / self.b_tot_weights, 
         self.var_list[0]) )
         """
 
@@ -632,8 +632,8 @@ class eigen_solver():
         self.X_vec, self.weights = self.load_data_from_text_file()
 
         # Reads angles of states from file 
-        angle_file_name = './data/angle_along_traj.txt'
-        self.angles = np.loadtxt(angle_file_name, skiprows=1)
+        #angle_file_name = './data/angle_along_traj.txt'
+        #self.angles = np.loadtxt(angle_file_name, skiprows=1)
 
         if self.weights.min() <= -1e-8 :
             print ( 'Error: weights of states can not be negative (min=%.4e)!' % (self.weights.min()) )
