@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import MDAnalysis as mda 
 from MDAnalysis import transformations
-from MDAnalysis.analysis.dihedrals import Dihedral
 from MDAnalysis.lib.distances import calc_dihedrals
 from MDAnalysis.analysis import align, rms 
 from functools import reduce
@@ -55,7 +54,7 @@ class namd_data_loader() :
         plt.yscale('log')
         filename = './fig/weights_sorted_in_1d.eps' 
         plt.savefig(filename)
-        print ('\n1d sorted weights saved to: %s' % filename)
+        print ('\n[Info] 1d sorted weights saved to: %s' % filename)
 
         # Count histgram and weights 
         for i in range (num_data):
@@ -73,7 +72,7 @@ class namd_data_loader() :
         plt.colorbar(h)
         filename = './fig/count_of_angles.eps' 
         plt.savefig(filename)
-        print ('\nPlot of 2d count data saved to: %s' % filename)
+        print ('\n[Info] Plot of 2d count data saved to: %s' % filename)
 
         plt.clf()
         fig, ax = plt.subplots(1,1)
@@ -83,7 +82,7 @@ class namd_data_loader() :
         filename = './fig/tot_weights_of_angles.eps' 
         plt.savefig(filename)
 
-        print ('Plot of total weight for each 2d-cell saved to: %s\n' % filename)
+        print ('[Info] Plot of total weight for each 2d-cell saved to: %s\n' % filename)
 
         # Average weights for each grid cell
         for i in range (numx):
@@ -101,7 +100,7 @@ class namd_data_loader() :
         filename = './fig/weights_of_angles.eps' 
         plt.savefig(filename)
 
-        print ('Plot of 2d weight data saved to: %s\n' % filename)
+        print ('[Info] Plot of 2d weight data saved to: %s\n' % filename)
 
 
     def load_angles_from_colvar_traj(self) :
@@ -116,10 +115,7 @@ class namd_data_loader() :
         self.angles = angles[::self.load_data_how_often, 1:]
 
         # For test purpose
-        print ('\nAngles of first 5 states:\n\t', self.angles[0:5,:])
-        # Save angles of states along trajectory
-        angle_output_file = './data/angle_along_traj.txt' 
-        np.savetxt(angle_output_file, self.angles, header='%d' % (self.angles.shape[0]), comments="", fmt="%.10f")
+        #print ('\nAngles of first 5 states:\n\t', self.angles[0:5,:])
 
     # Compute weights for each sampled data
     def weights_of_colvars_by_pmf(self) :
@@ -144,7 +140,7 @@ class namd_data_loader() :
         lbx += dx * 0.5
         lby += dy * 0.5
 
-        print ('2d grid mesh for angles:\n\t[%.2f, %.2f], nx=%d\n\t[%.2f, %.2f], ny=%d' % (lbx, lbx + numx * dx, numx, lby, lby + numx * dy, numy))
+        print ('[Info] 2d grid mesh for angles:\n\t[%.2f, %.2f], nx=%d\n\t[%.2f, %.2f], ny=%d' % (lbx, lbx + numx * dx, numx, lby, lby + numx * dy, numy))
 
         # Read PMF data on mesh of angles 
         pmf_on_angle_mesh = np.loadtxt(colvar_pmf_filename)[:,2].reshape([numx, numy])
@@ -168,31 +164,36 @@ class namd_data_loader() :
         rescale = np.sum(weights_along_colvars) / K_angle
         weights_along_colvars /= rescale
 
-        print ('\nLength of pmf data along trajectory: %s\n\tmin-max of pmf=(%.3f, %.3f)' % (len(pmf_along_colvars), min(pmf_along_colvars), max(pmf_along_colvars)) )
+        print ('\n[Info] Length of pmf data along trajectory: %s\n\tmin-max of pmf=(%.3f, %.3f)' % (len(pmf_along_colvars), min(pmf_along_colvars), max(pmf_along_colvars)) )
 
         print ('\t(min,max,sum) of weights=(%.3e, %.3e, %.3e)\n' % (min(weights_along_colvars), max(weights_along_colvars), sum(weights_along_colvars) ) )
 
         self.weights = weights_along_colvars
 
-    def total_weights_C7eq_C7ax(self) :
+    def total_weights_sub_regions(self) :
+
+        num_of_regions = 4
+        region_names = ['C7eq', 'C7ax', 'l-channel', 'r-channel']
 
         c7eq_index = reduce(np.logical_and, (self.angles[:,0] > -120, self.angles[:,0] < -70, self.angles[:,1] > 40, self.angles[:,1] < 130))
-        core_weight = np.sum(self.weights[c7eq_index])
-
-        print ('Weights (max, sum of weights, total weights, percentage) of regions:\n  C7eq:\t', np.max(self.weights[c7eq_index]), core_weight, self.weights.sum(), core_weight / self.weights.sum() )
-
         c7ax_index = reduce(np.logical_and, (self.angles[:, 0] > 40, self.angles[:, 0] < 100, self.angles[:,1] < 0, self.angles[:,1] > -150))
-        core_weight = np.sum(self.weights[c7ax_index])
-
-        print ('  C7ax:\t', np.max(self.weights[c7ax_index]), core_weight, self.weights.sum(), core_weight / self.weights.sum() )
-
         l_trans_index = reduce(np.logical_and, (self.angles[:,0] > -25, self.angles[:,0] < 25, self.angles[:,1] > -110, self.angles[:,1] < 0))
-        core_weight = np.sum(self.weights[l_trans_index])
-        print ('  l-channel:\t', np.max(self.weights[l_trans_index]), core_weight, self.weights.sum(), core_weight / self.weights.sum() )
-
         r_trans_index = reduce(np.logical_and, (self.angles[:,0] > 115, self.angles[:,0] < 140, self.angles[:,1] > -170, self.angles[:,1] < -30))
-        core_weight = np.sum(self.weights[r_trans_index])
-        print ('  r-channel:\t', np.max(self.weights[r_trans_index]), core_weight, self.weights.sum(), core_weight / self.weights.sum() )
+
+        set_of_index_set = [c7eq_index, c7ax_index, l_trans_index, r_trans_index]
+
+        print ('Name\tnum\t min-w\tmax-w\tsum-w\ttot-w\tpercent')
+
+        for idx_set in  range(num_of_regions) :
+            index_set = set_of_index_set[idx_set] 
+            core_weight = np.sum(self.weights[index_set])
+            if core_weight > 0 :
+                print ('%8s: %6d\t%8.2e\t%.2e\t%.2e\t%.1f\t%.2e' %
+                    (region_names[idx_set], len(self.weights[index_set]),
+                        np.min(self.weights[index_set]),
+                        np.max(self.weights[index_set]), core_weight,
+                        self.weights.sum(), core_weight / self.weights.sum() ) )
+
 
     def load_namd_traj(self):
         # Names of files containing trajectory data
@@ -282,8 +283,6 @@ class namd_data_loader() :
             print("[Info] Since data are unbiased, all weights are 1\n", flush=True)
             self.weights = np.ones(K) 
 
-        self.total_weights_C7eq_C7ax()
-
         # Number of selected atoms
         self.atom_num = len(self.selected_atoms.names)
 
@@ -306,7 +305,10 @@ class namd_data_loader() :
 
         print ("\n[Info] States whose weight is below %.2e are removed. %d states left." % (self.weight_threshold_to_remove_states, self.traj_data.shape[0]) )
 
-        print ('\t(min,max,sum) of weights=(%.3e, %.3e, %.3e)' % (min(self.weights), max(self.weights), sum(self.weights) ) )
+        print ('\t(min,max,sum) of (renormalized) weights =(%.3e, %.3e, %.3e)\n' % (min(self.weights), max(self.weights), sum(self.weights) ) )
+
+        self.total_weights_sub_regions()
+
 
     def load_all(self):
 
@@ -323,6 +325,11 @@ class namd_data_loader() :
             # Plot PMF on angle mesh
             self.plot_angle_and_weight_on_grid()
 
+        # Save angles of states along trajectory
+        angle_output_file = './data/angle_along_traj.txt' 
+        print ( '[Info] Angles along trajectory are saved to file: %s\n' % angle_output_file)
+        np.savetxt(angle_output_file, self.angles, header='%d' % (self.angles.shape[0]), comments="", fmt="%.10f")
+
         mass_filename = './data/namd_mass.txt'
         # Mass of selected atoms
         if self.which_data_to_use == 'angle': 
@@ -334,7 +341,7 @@ class namd_data_loader() :
             np.savetxt(mass_filename, np.repeat(mass_of_selected_atoms, 3), header='%d' % (3 * len(mass_of_selected_atoms)), comments="", fmt="%.10f")
 
         # Save the mass of selected atoms to file
-        print ( '[Info] Mass of atoms saved to file:%s\n' % mass_filename )
+        print ( '[Info] Mass of atoms saved to file: %s\n' % mass_filename )
 
         # Save trajectory data to txt file
         states_file_name = './data/%s.txt' % (self.data_filename_prefix)
@@ -347,5 +354,5 @@ class namd_data_loader() :
         # Use trajectory data of selected atoms 
         np.savetxt(states_file_name, np.concatenate((self.traj_data, self.weights.reshape((K,1))), axis=1), header='%d %d' % (K, 3 * self.atom_num), comments="", fmt="%.10f")
 
-        print("Sampled data are stored to: %s" % states_file_name)
+        print("[Info] Sampled data are stored to: %s" % states_file_name)
 

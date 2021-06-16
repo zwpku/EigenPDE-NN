@@ -8,6 +8,7 @@ from collections import OrderedDict
 import time
 from numpy import linalg as LA
 import itertools 
+from functools import reduce
 
 import network_arch 
 
@@ -150,31 +151,12 @@ class eigen_solver():
 
         # Reads states from file 
         states_file_name = './data/%s.txt' % (self.data_filename_prefix)
-        fp = open(states_file_name, 'r')
-
-        # The first line contains the total number of states
-        K_total, tmp_dim = [int (x) for x in fp.readline().split()]
-        print ("[Info] load data from file: %s\n\t%d states" % (states_file_name, K_total), flush=True)
-
-        tmp_list = []
-        line_idx = 0
-
-        # Avoid calling fp.readlines(), as it will read in the entire file and may lead to 
-        # memory issue when the file is large. 
-        # lines = fp.readlines()
-
-        # Go through lines 
-        for line in fp :
-            state = [float (x) for x in line.split(' ')]
-            tmp_list.append(state)
-            line_idx += 1 
-
-        state_weight_vec = np.array(tmp_list)
-
+        state_weight_vec = np.loadtxt(states_file_name, skiprows=1)
+        
         # Number of states 
         K = state_weight_vec.shape[0]
 
-        print('\t%d sample data loaded' % (K), flush=True)
+        print ("[Info] loaded data from file: %s\n\t%d states" % (states_file_name, K), flush=True)
 
         # The last column of the data contains the weights
         return state_weight_vec[:,:-1], state_weight_vec[:,-1]
@@ -270,6 +252,31 @@ class eigen_solver():
         self.var_list = [(self.y[:,idx]**2 * self.b_weights).sum() / self.b_tot_weights - self.mean_list[idx]**2 for idx in range(self.k)]
 
         """
+        self.b_angles = self.angles[x_batch_index,:]
+
+        c7eq_index = reduce(np.logical_and, (self.b_angles[:,0] > -120, self.b_angles[:,0] < -70, self.b_angles[:,1] > 40, self.b_angles[:,1] < 130))
+        #c7eq_index = self.b_angles[:,0] < 0
+        c7ax_index = reduce(np.logical_and, (self.b_angles[:, 0] > 40, self.b_angles[:, 0] < 100, self.b_angles[:,1] < 0, self.b_angles[:,1] > -150))
+        l_trans_index = reduce(np.logical_and, (self.b_angles[:,0] > -25, self.b_angles[:,0] < 25, self.b_angles[:,1] > -110, self.b_angles[:,1] < 0))
+        r_trans_index = reduce(np.logical_and, (self.b_angles[:,0] > 115, self.b_angles[:,0] < 140, self.b_angles[:,1] > -170, self.b_angles[:,1] < -30))
+
+        self.set_of_index_set = [c7eq_index, c7ax_index, l_trans_index, r_trans_index]
+
+        print ('Name\tnum\t min-w\tmax-w\tsum-w\ttot-w\tpercent')
+
+        num_of_regions = 4
+        region_names = ['C7eq', 'C7ax', 'l-channel', 'r-channel']
+
+        for idx_set in  range(num_of_regions) :
+            index_set = self.set_of_index_set[idx_set] 
+            core_weight = self.b_weights[index_set].sum()
+            if core_weight > 0 :
+                print ('%8s: %6d\t%8.2e\t%.2e\t%.2e\t%.1f\t%.2e' %
+                    (region_names[idx_set], len(self.b_weights[index_set]),
+                        self.b_weights[index_set].min(),
+                        self.b_weights[index_set].max(), core_weight,
+                        self.b_weights.sum(), core_weight / self.b_weights.sum() ) )
+
         self.neg_index = x_batch[:,0] < 0
         self.pos_index = x_batch[:,0] > 0
         self.trans_index = np.logical_and(x_batch[:,0] > -0.3, x_batch[:,0] < 0.3).type(torch.bool)
@@ -448,8 +455,8 @@ class eigen_solver():
                 """
                 partial_loss = []
                 partial_loss_noweight = []
-                for index_set in [self.neg_index, self.trans_index, self.pos_index] :
-                    num = torch.sum(index_set)
+                for index_set in self.set_of_index_set :
+                    num = np.sum(index_set)
                     neg_non_penalty_loss = 1.0 / (self.b_tot_weights * self.beta) * \
                     sum([self.eig_w[idx] * torch.sum((self.y_grad_vec[cvec[idx]][index_set,:]**2 * self.diag_coeff).sum(dim=1) * self.b_weights[index_set]) / self.var_list[cvec[idx]]  for idx in range(self.k)])
                     neg_non_penalty_loss_noweight = sum([self.eig_w[idx] *
@@ -623,6 +630,10 @@ class eigen_solver():
 
         # Load trajectory data (states and their weights)
         self.X_vec, self.weights = self.load_data_from_text_file()
+
+        # Reads angles of states from file 
+        angle_file_name = './data/angle_along_traj.txt'
+        self.angles = np.loadtxt(angle_file_name, skiprows=1)
 
         if self.weights.min() <= -1e-8 :
             print ( 'Error: weights of states can not be negative (min=%.4e)!' % (self.weights.min()) )
