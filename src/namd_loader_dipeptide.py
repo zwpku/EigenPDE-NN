@@ -330,19 +330,6 @@ class namd_data_loader() :
         print ( '[Info] Angles along trajectory are saved to file: %s\n' % angle_output_file)
         np.savetxt(angle_output_file, self.angles, header='%d' % (self.angles.shape[0]), comments="", fmt="%.10f")
 
-        mass_filename = './data/namd_mass.txt'
-        # Mass of selected atoms
-        if self.which_data_to_use == 'angle': 
-            # We choose artificial mass for angles. Needs to be fixed in future.
-            mass_of_selected_atoms = np.array([1.0, 1.0])
-            np.savetxt(mass_filename, mass_of_selected_atoms, header='%d' % (len(mass_of_selected_atoms)), comments="", fmt="%.10f")
-        else :
-            mass_of_selected_atoms = self.selected_atoms.masses
-            np.savetxt(mass_filename, np.repeat(mass_of_selected_atoms, 3), header='%d' % (3 * len(mass_of_selected_atoms)), comments="", fmt="%.10f")
-
-        # Save the mass of selected atoms to file
-        print ( '[Info] Mass of atoms saved to file: %s\n' % mass_filename )
-
         # Save trajectory data to txt file
         states_file_name = './data/%s.txt' % (self.data_filename_prefix)
 
