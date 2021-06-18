@@ -272,9 +272,12 @@ class eigen_solver():
                         self.b_weights[index_set].max(), core_weight,
                         self.b_weights.sum(), core_weight / self.b_weights.sum() ) )
 
-        self.neg_index = x_batch[:,0] < 0
-        self.pos_index = x_batch[:,0] > 0
-        self.trans_index = np.logical_and(x_batch[:,0] > -0.3, x_batch[:,0] < 0.3).type(torch.bool)
+        tmp_x = x_batch[:,0].detach().numpy()
+        self.neg_index =  tmp_x < 0
+        self.pos_index = tmp_x > 0
+        self.trans_index = np.logical_and(tmp_x > -0.3, tmp_x < 0.3)
+
+        self.set_of_index_set = [self.neg_index, self.pos_index, self.trans_index]
 
         print (x_batch[self.neg_index].shape[0], x_batch[self.trans_index].shape[0], x_batch[self.pos_index].shape[0])
         print (sum(self.b_weights[self.neg_index]), sum(self.b_weights[self.trans_index]), sum(self.b_weights[self.pos_index]))
@@ -441,11 +444,12 @@ class eigen_solver():
                 # Use Rayleigh quotients (i.e. energy divided by variance)
                 non_penalty_loss = 1.0 / (self.b_tot_weights * self.beta) * sum([self.eig_w[idx] * torch.sum((self.y_grad_vec[cvec[idx]]**2 * self.diag_coeff).sum(dim=1) * self.b_weights) / self.var_list[cvec[idx]]  for idx in range(self.k)])
 
+
                 """
                 partial_loss = []
                 partial_loss_noweight = []
                 for index_set in self.set_of_index_set :
-                    num = np.sum(index_set)
+                    num = sum(index_set)
                     neg_non_penalty_loss = 1.0 / (self.b_tot_weights * self.beta) * \
                     sum([self.eig_w[idx] * torch.sum((self.y_grad_vec[cvec[idx]][index_set,:]**2 * self.diag_coeff).sum(dim=1) * self.b_weights[index_set]) / self.var_list[cvec[idx]]  for idx in range(self.k)])
                     neg_non_penalty_loss_noweight = sum([self.eig_w[idx] *
