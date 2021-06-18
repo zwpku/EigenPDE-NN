@@ -120,7 +120,7 @@ class Param:
 
         if self.namd_data_flag == True : 
             self.temp_T = config['NAMD'].getfloat('temperature')
-            self.damping_coeff = config['NAMD'].getfloat('damping_coeff')
+            self.diffusion_coeff = config['NAMD'].getfloat('diffusion_coeff')
             self.psf_name = config['NAMD'].get('psf_name')
             self.which_data_to_use = config['NAMD'].get('which_data_to_use')
             self.use_biased_data = config['NAMD'].getboolean('use_biased_data')
@@ -136,8 +136,6 @@ class Param:
             # The unit of the PMF obtained from NAMD is: kcal/mol
             # At T=300, namd_beta = 1.6774
             self.namd_beta = 1.0 / (Kb * self.temp_T)
-        else :
-            self.damping_coeff = 1.0
 
         # Log file for training 
         self.log_filename = config['default'].get('log_filename')

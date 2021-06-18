@@ -107,14 +107,9 @@ class eigen_solver():
         fp.close()
 
         if Param.namd_data_flag == True : 
-            # Compute diagnal matrix based on mass and damping coefficient
-            mass_vec = np.loadtxt('./data/namd_mass.txt', skiprows=1)
-
-            assert len(mass_vec) == self.dim, "length of mass array (%d) does not match the dimension (%d)!" % (len(mass_vec), self.dim)
-
-            # This is the friction coefficients, multiplied by the constant 418.4 * 1000, 
-            # such that the unit of eigenvalues given by Rayleigh quotients is ns^{-1}.
-            self.diag_coeff = torch.from_numpy(418.4 * 1e3 / Param.damping_coeff * np.reciprocal(mass_vec))
+            # This is the diagnoal matrix; 
+            # The unit of eigenvalues given by Rayleigh quotients is ns^{-1}.
+            self.diag_coeff = torch.ones(self.dim).double() * Param.diffusion_coeff * 1e7 * self.beta
         else :
             self.diag_coeff = torch.ones(self.dim).double()
 
@@ -368,19 +363,13 @@ class eigen_solver():
       alpha_vec:  two penalty constants used in Steps (2)-(3) above.
 
 
-      Unit of eigenvalues for NAMD applications:
-        length:             angstrom, 10^{-10}m ;
-        damping cofficient: ps^{-1} = 10^{12} s^{-1} ;
-        mass:               10^{-3} kg/mol, (atomic mass unit: M_u) ;
-        1/beta:             kcal/mol (conversion: 1 kcal/mol=4184 J/mol, 1J=1kg*m^2*s^{-2}) ;
+      Unit of eigenvalues for Brownian dynamics: 
+        length:                 angstrom, 10^{-10}m ;
+        diffusion coefficient:  cm^2 s^{-1} = 10^{-13} m^2 ns^{-1}
 
         As a result, the unit of Rayleigh quotient is 
-           1kcal/mol * 10^{20} m^{-2} * 10^{-12} s / (10^{-3} kg/mol) 
-         = 418.4 * ps^{-1}
-
-        Based on this calculation, we include the constant 418.4 in the diag_coeff, 
-        so that the eigenvalues are measured in ps^{-1}.
-
+           10^{-13} m^2 ns^{-1} * 10^{20} m^{-2} = 10^7 ns^{-1}
+        This calculation will be used to compuate the diagnoal matrix.
     """
     def update_step(self, bsz, alpha_vec):
 
