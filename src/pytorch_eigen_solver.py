@@ -46,13 +46,19 @@ class eigen_solver():
 
         self.nn_features = []
         if Param.nn_features != None :
+            self.nn_feature_dim = 0 
             feature_str_list =  Param.nn_features.split(';')
             for feature_str in feature_str_list :
                 feature_str_split = feature_str.strip("{( )}").split(',')
-                # Only diheral angles are considered in the current implementation
+                # diheral angle, angle and bond length are considered in the current implementation
                 print (feature_str_split)
+                self.nn_features.append(feature_str_split)
                 if feature_str_split[0] == 'dihedral' : 
-                    self.nn_features.append(feature_str_split)
+                    self.nn_feature_dim += 2
+                if feature_str_split[0] == 'bond' : 
+                    self.nn_feature_dim += 1
+                if feature_str_split[0] == 'angle' : 
+                    self.nn_feature_dim += 1
 
         print ('Features: ', self.nn_features)
 
@@ -646,7 +652,7 @@ class eigen_solver():
 
         if len(self.nn_features) > 0 :
             # Include the feature layer and the output layers of neural network
-            self.arch_list = [2 * len(self.nn_features)] + self.arch_list + [1]
+            self.arch_list = [self.nn_feature_dim] + self.arch_list + [1]
         else :
             # Include the input/output layers of neural network
             self.arch_list = [self.dim] + self.arch_list + [1]

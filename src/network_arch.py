@@ -54,22 +54,42 @@ class MySequential(torch.nn.Module):
             self.linears[-1].bias /= torch.sqrt(var)
 
     def extract_features(self, x):
-        xf = torch.zeros(x.shape[0], 2 * self.num_features).double()
+        xf = torch.zeros(x.shape[0], self.nn_dims[0]).double()
         num_atoms = int(x.shape[1] / 3)
         x = x.reshape((-1, num_atoms, 3))
-        # Compute diheral angles for each group of 4 atoms
+        f_index = 0
         for i in range(self.num_features) :
-            ag = [int(xx) for xx in self.features[i][1:]]
-            r12 = x[:, ag[1], :] - x[:, ag[0], :]
-            r23 = x[:, ag[2], :] - x[:, ag[1], :]
-            r34 = x[:, ag[3], :] - x[:, ag[2], :]
-            n1 = torch.cross(r12, r23)
-            n2 = torch.cross(r23, r34)
-            cos_phi = (n1*n2).sum(dim=1)
-            sin_phi = (n1 * r34).sum(dim=1) * torch.norm(r23, dim=1)
-            radius = torch.sqrt(cos_phi**2 + sin_phi**2)
-            xf[:, 2*i] = cos_phi / radius  
-            xf[:, 2*i+1] = sin_phi / radius
+            # Compute diheral angles for each group of 4 atoms
+            if self.features[i][0] == 'dihedral': 
+                ag = [int(xx) for xx in self.features[i][1:]]
+                r12 = x[:, ag[1], :] - x[:, ag[0], :]
+                r23 = x[:, ag[2], :] - x[:, ag[1], :]
+                r34 = x[:, ag[3], :] - x[:, ag[2], :]
+                n1 = torch.cross(r12, r23)
+                n2 = torch.cross(r23, r34)
+                cos_phi = (n1*n2).sum(dim=1)
+                sin_phi = (n1 * r34).sum(dim=1) * torch.norm(r23, dim=1)
+                radius = torch.sqrt(cos_phi**2 + sin_phi**2)
+                xf[:, f_index] = cos_phi / radius  
+                xf[:, f_index+1] = sin_phi / radius
+                f_index += 2
+
+            if self.features[i][0] == 'angle': 
+                ag = [int(xx) for xx in self.features[i][1:]]
+                r21 = x[:, ag[0], :] - x[:, ag[1], :]
+                r23 = x[:, ag[2], :] - x[:, ag[1], :]
+                r21l = torch.norm(r21, dim=1)
+                r23l = torch.norm(r23, dim=1)
+                cos_angle = r21 * r23 / (r21l * r23l)
+                xf[:, f_index] = cos_angle
+                f_index += 1
+
+            if self.features[i][0] == 'bond': 
+                ag = [int(xx) for xx in self.features[i][1:]]
+                r12 = x[:, ag[1], :] - x[:, ag[0], :]
+                xf[:, f_index] = torch.norm(r12, dim=1)
+                f_index += 1
+
         return xf
 
     def feature_forward(self, xf):
