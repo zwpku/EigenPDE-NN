@@ -80,7 +80,7 @@ class MySequential(torch.nn.Module):
                 r23 = x[:, ag[2], :] - x[:, ag[1], :]
                 r21l = torch.norm(r21, dim=1)
                 r23l = torch.norm(r23, dim=1)
-                cos_angle = r21 * r23 / (r21l * r23l)
+                cos_angle = (r21 * r23).sum(dim=1) / (r21l * r23l)
                 xf[:, f_index] = cos_angle
                 f_index += 1
 
