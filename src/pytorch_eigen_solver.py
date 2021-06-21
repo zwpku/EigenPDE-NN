@@ -11,6 +11,7 @@ import itertools
 from functools import reduce
 
 import network_arch 
+import data_set
 
 class eigen_solver():
 
@@ -19,9 +20,10 @@ class eigen_solver():
         self.k = Param.k
         self.all_k_eigs = Param.all_k_eigs
         self.eig_w = Param.eig_w
+        self.namd_data_flag = Param.namd_data_flag
 
         # When MD data is used, compute beta from temperature
-        if Param.namd_data_flag == True : 
+        if  self.namd_data_flag == True : 
             self.beta = Param.namd_beta
         else :
             self.beta = Param.beta
@@ -44,23 +46,9 @@ class eigen_solver():
 
         self.activation_name = Param.activation_name
 
-        self.nn_features = []
-        if Param.nn_features != None :
-            self.nn_feature_dim = 0 
-            feature_str_list =  Param.nn_features.split(';')
-            for feature_str in feature_str_list :
-                feature_str_split = feature_str.strip("{( )}").split(',')
-                # diheral angle, angle and bond length are considered in the current implementation
-                print (feature_str_split)
-                self.nn_features.append(feature_str_split)
-                if feature_str_split[0] == 'dihedral' : 
-                    self.nn_feature_dim += 2
-                if feature_str_split[0] == 'bond' : 
-                    self.nn_feature_dim += 1
-                if feature_str_split[0] == 'angle' : 
-                    self.nn_feature_dim += 1
+        self.features = data_set.feature_tuple(Param.nn_features) 
 
-        print ('Features: ', self.nn_features)
+        self.features.show_features()
 
         self.train_max_step = Param.train_max_step
 
@@ -104,20 +92,20 @@ class eigen_solver():
         torch.set_printoptions(precision=20)
 
         # Determine the dimension from datafile 
-        states_file_name = './data/%s.txt' % (self.data_filename_prefix)
-        fp = open(states_file_name, 'r')
+        states_filename = './data/%s.txt' % (self.data_filename_prefix)
+        fp = open(states_filename, 'r')
 
         # Only read the first line, in order to find dimension
-        K_total, self.dim = [int (x) for x in fp.readline().split()]
+        K_total, self.tot_dim = [int (x) for x in fp.readline().split()]
 
         fp.close()
 
-        if Param.namd_data_flag == True : 
+        if self.namd_data_flag == True : 
             # This is the diagnoal matrix; 
             # The unit of eigenvalues given by Rayleigh quotients is ns^{-1}.
-            self.diag_coeff = torch.ones(self.dim).double() * Param.diffusion_coeff * 1e7 * self.beta
+            self.diag_coeff = torch.ones(self.tot_dim).double() * Param.diffusion_coeff * 1e7 * self.beta
         else :
-            self.diag_coeff = torch.ones(self.dim).double()
+            self.diag_coeff = torch.ones(self.tot_dim).double()
 
         if self.use_Rayleigh_quotient == False and self.use_reduced_2nd_penalty == True :
             self.use_reduced_2nd_penalty = False 
@@ -126,7 +114,7 @@ class eigen_solver():
         print ("Diagonal constants (size=%d):\n" % len(self.diag_coeff), self.diag_coeff)
         print ("[Info]  beta = %.4f" % (self.beta))
         print ("[Info]  seed = %d" % (seed))
-        print ("[Info]  dim = %d\n" % self.dim)
+        print ("[Info]  dim = %d\n" % self.tot_dim)
         print ('\tStages: ', self.stage_list)
         print ('\tBatch size list: ', self.batch_size_list)
         print ('\tLearning rate list: ', self.learning_rate_list)
@@ -146,21 +134,6 @@ class eigen_solver():
         else :
             print ("[Info] Compute the %dth eigenvalue" % (self.k))
 
-
-    # Load sampled data from text file
-    def load_data_from_text_file(self):
-
-        # Reads states from file 
-        states_file_name = './data/%s.txt' % (self.data_filename_prefix)
-        state_weight_vec = np.loadtxt(states_file_name, skiprows=1)
-        
-        # Number of states 
-        K = state_weight_vec.shape[0]
-
-        print ("[Info] loaded data from file: %s\n\t%d states" % (states_file_name, K), flush=True)
-
-        # The last column of the data contains the weights
-        return state_weight_vec[:,:-1], state_weight_vec[:,-1]
 
     def zero_model_parameters(self, model):
         for param in model.parameters():
@@ -215,35 +188,19 @@ class eigen_solver():
     """
     def fun_and_grad_on_data(self, batch_size):
 
-        # Randomly generate indices of samples from data set 
-        x_batch_index = random.choices(range(self.K), cum_weights=self.cum_weights, k=batch_size)
-        #x_batch_index = range(self.K)
-
-        #  Choose samples corresonding to those indices,
-        #  and reshape the array to avoid the problem when dim=1
-        x_batch = torch.reshape(self.X_vec[x_batch_index], (batch_size, self.dim))
-
-        # This is needed in order to compute spatial gradients
-        x_batch.requires_grad = True
+        self.dataset.generate_minbatch(batch_size) 
 
         # Evaluate function value on data
-        self.y = self.model(x_batch)
-
-        # Vector used in computing spatial gradient of functions in pytorch, 
-        # where each component of the vector equals 1.
-        v_in_jac = torch.ones(batch_size, dtype=torch.float64)
+        self.y = self.model(self.dataset)
 
         """
           Apply the Jacobian-vector trick to compute spatial gradients.
           The flag create_graph=True is needed, because later we need to compute
           gradients w.r.t. parameters; Please refer to the torch.autograd.grad function for details.
         """
-        self.y_grad_vec = [torch.autograd.grad(self.y[:,idx], x_batch, v_in_jac, create_graph=True)[0] for idx in range(self.k)]
+        self.y_grad_vec = [torch.autograd.grad(self.y[:,idx], self.dataset.x_batch, self.v_in_jac, create_graph=True)[0] for idx in range(self.k)]
 
-        if self.batch_uniform_weight == True : 
-            self.b_weights= self.weights[x_batch_index]
-        else :
-            self.b_weights= torch.ones(batch_size, dtype=torch.float64)
+        self.b_weights= self.dataset.weights_minbatch()
 
         # Total weights, will be used for normalization 
         self.b_tot_weights = self.b_weights.sum()
@@ -509,6 +466,10 @@ class eigen_solver():
                 # Penalty constants 
                 alpha_vec = [self.alpha_1_list[stage_index], self.alpha_2_list[stage_index]] 
 
+                # Vector used in computing spatial gradient of functions in pytorch, 
+                # where each component of the vector equals 1.
+                self.v_in_jac = torch.ones(bsz, dtype=torch.float64)
+
                 # Initialize mean and variance of eigenvalues in this stage
                 if self.all_k_eigs : 
                     mean_eig_vals = np.zeros(self.k)
@@ -627,36 +588,24 @@ class eigen_solver():
         # Starting time
         self.start_time = time.process_time()
 
-        # Load trajectory data (states and their weights)
-        self.X_vec, self.weights = self.load_data_from_text_file()
+        states_filename = './data/%s.txt' % (self.data_filename_prefix)
 
-        # Reads angles of states from file 
-        #angle_file_name = './data/angle_along_traj.txt'
-        #self.angles = np.loadtxt(angle_file_name, skiprows=1)
-
-        if self.weights.min() <= -1e-8 :
-            print ( 'Error: weights of states can not be negative (min=%.4e)!' % (self.weights.min()) )
-            sys.exit()
-
-        # Size of the trajectory data
-        self.K = self.X_vec.shape[0]
-
-        if self.batch_uniform_weight == True : 
-            self.cum_weights = np.arange(1, self.K+1)
+        # Load trajectory data 
+        if self.namd_data_flag == True :
+            self.dataset = data_set.MD_data_set(states_filename)
         else :
-            self.cum_weights = np.cumsum(self.weights)
+            self.dataset = data_set.data_set(states_filename)
 
-        # Convert to torch type 
-        self.X_vec = torch.from_numpy(self.X_vec)
-        self.weights = torch.from_numpy(self.weights)
+        if self.batch_uniform_weight == False : 
+            self.dataset.set_nonuniform_batch_weight() 
 
-        if len(self.nn_features) > 0 :
+        if self.features.num_features > 0 :
+            self.dataset.set_features(self.features)
             # Include the feature layer and the output layers of neural network
-            self.arch_list = [self.nn_feature_dim] + self.arch_list + [1]
+            self.arch_list = [self.features.f_dim] + self.arch_list + [1]
         else :
             # Include the input/output layers of neural network
-            self.arch_list = [self.dim] + self.arch_list + [1]
-
+            self.arch_list = [self.dataset.tot_dim] + self.arch_list + [1]
 
         # Load trained neural network
         if self.load_init_model == True :
@@ -666,11 +615,11 @@ class eigen_solver():
             self.model.train()
         else :
             # Initialize networks 
-            self.model = network_arch.MyNet(self.arch_list, self.activation_name, self.k, self.nn_features) 
-        self.model_bak = network_arch.MyNet(self.arch_list, self.activation_name, self.k, self.nn_features)
+            self.model = network_arch.MyNet(self.arch_list, self.activation_name, self.k) 
+        self.model_bak = network_arch.MyNet(self.arch_list, self.activation_name, self.k)
 
         # These networks record training results of several consecutive training steps
-        self.averaged_model = network_arch.MyNet(self.arch_list, self.activation_name, self.k, self.nn_features)
+        self.averaged_model = network_arch.MyNet(self.arch_list, self.activation_name, self.k)
 
         # Use double precision
         self.model.double()
@@ -691,7 +640,6 @@ class eigen_solver():
         print( '\n[Info] Time used in loading data: %.2f Sec\n' % elapsed_time )
         print('\n[Info] Total number of parameters in networks: %d\n' % tot_num_parameters) 
         print ("[Info]  NN architecture:", self.arch_list)
-        print ('Range of weights: [%.3e, %.ee]' % (self.weights.min(), self.weights.max()) )
 
         # Train the networks
         self.train()

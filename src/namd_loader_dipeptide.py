@@ -309,7 +309,6 @@ class namd_data_loader() :
 
         self.total_weights_sub_regions()
 
-
     def load_all(self):
 
         self.load_namd_traj()
