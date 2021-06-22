@@ -19,11 +19,7 @@ sys.path.append('../src/')
 import potentials 
 import read_parameters 
 import namd_loader_dipeptide
-
-def f_on_angle(xvec, angle, idx) :
-    angle = angle / 180 * pi 
-    #return angle[:,0] + idx * angle[:,1]
-    return xvec[:, 0] + idx * xvec[:,1]
+import data_set
 
 Param = read_parameters.Param()
 
@@ -33,9 +29,12 @@ if Param.load_validataion_data_from_dcdfile == True :
     dataset = data_set.MD_data_set(xvec, weights)
 else :
     states_filename = './data/%s.txt' % (Param.validation_txt_data_filename_prefix)
-    dataset = data_set.MD_data_set(states_filename)
+    dataset = data_set.MD_data_set.from_file(states_filename)
 
-print ("angle=", angles.shape)
+features = data_set.feature_tuple(Param.nn_features)
+
+if features.num_features > 0 :
+    dataset.set_features(features)
 
 K = dataset.K
 
@@ -57,10 +56,8 @@ dataset.generate_minbatch(dataset.K, False)
 # Evaluate neural network functions at states
 Y_hat_all = model(dataset).detach().numpy()
 
-print (Y_hat_all.shape)
-
 if Param.all_k_eigs : # In this case, output the first k eigenfunctions
-    weights = dataset.weights
+    weights = dataset.weights.numpy()
     b_tot_weights = sum(weights) 
     mean_list = [(Y_hat_all[:,idx] * weights).sum() / b_tot_weights for idx in range(k)]
     var_list = [(Y_hat_all[:,idx]**2 * weights).sum() / b_tot_weights - mean_list[idx]**2 for idx in range(k)]
@@ -70,8 +67,8 @@ if Param.all_k_eigs : # In this case, output the first k eigenfunctions
 
     for idx in range(k):
         eigen_file_name_output = './data/%s_on_data_all_%d.txt' % (eig_file_name_prefix, idx+1)
-        np.savetxt(eigen_file_name_output, np.concatenate((angles, Y_hat_all[:, idx, None]), axis=1), header='%d' % K, comments="", fmt="%.10f")
-        print("%dth eigen function along is stored to:\n\t%s" % (idx+1, eigen_file_name_output))
+        np.savetxt(eigen_file_name_output, Y_hat_all[:, idx], header='%d' % K, comments="", fmt="%.10f")
+        print("%dth eigen function along trajectory is stored to:\n\t%s" % (idx+1, eigen_file_name_output))
 
 else : # Output the kth eigenfunction
     # Read the c vector
@@ -84,7 +81,7 @@ else : # Output the kth eigenfunction
     Y_hat = Y_hat / LA.norm(Y_hat) * math.sqrt(K)
 
     eigen_file_name_output = './data/%s_on_data_%d.txt' % (eig_file_name_prefix, k)
-    np.savetxt(eigen_file_name_output, np.concatenate((angles[:,1:], Y_hat), axis=1), header='%d' % K, comments="", fmt="%.10f")
+    np.savetxt(eigen_file_name_output, Y_hat, header='%d' % K, comments="", fmt="%.10f")
 
     print("%dth eigen function is stored to:\n\t%s" % (k, eigen_file_name_output))
 

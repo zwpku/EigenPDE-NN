@@ -308,9 +308,6 @@ class namd_data_loader() :
 
         self.total_weights_sub_regions()
 
-    def load_all(self):
-        self.load_namd_traj()
-        return self.traj_data, self.angles, self.weights 
 
 # load sampled MD data from file, and save it to txt file
     def save_namd_data_to_txt(self):
@@ -338,4 +335,16 @@ class namd_data_loader() :
         np.savetxt(states_file_name, np.concatenate((self.traj_data, self.weights.reshape((K,1))), axis=1), header='%d %d' % (K, 3 * self.atom_num), comments="", fmt="%.10f")
 
         print("[Info] Sampled data are stored to: %s" % states_file_name)
+
+         # Save trajectory data to txt file
+        atom_ids_file = './data/atom_ids.txt' 
+        np.savetxt(atom_ids_file, self.selected_atoms.ix_array, header='%d' % self.atom_num, comments="", fmt="%d")
+
+        print("[Info] Atom indices are stored to: %s" % atom_ids_file)
+
+
+    def load_all(self):
+
+        self.load_namd_traj()
+        return self.traj_data, self.angles, self.weights 
 

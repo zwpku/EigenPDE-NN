@@ -34,12 +34,29 @@ class feature_tuple():
             for i in range(self.num_features): 
               print ('%dth feature:' % (i+1), self.f_tuples[i]) 
 
+    def convert_atom_ix_by_file(self, ids_filename) :
+        self.ix_array = np.loadtxt(ids_filename, skiprows=1, dtype=int)
+        K = len(self.ix_array)
+        idx_vec = np.ones(int(np.max(self.ix_array))+1, dtype=int) * -1 
+        for idx in range(K) :
+            g_idx = self.ix_array[idx] 
+            idx_vec[g_idx] = idx
+
+        tmp_f_tuples = []
+        for f_idx in range(self.num_features) :
+            ag = [idx_vec[idx] for idx in self.f_tuples[f_idx][1]]
+            tmp_f_tuples.append([self.f_tuples[f_idx][0], ag])
+
+        self.f_tuples = tuple(tmp_f_tuples)
+
+        print ('[Info] Converted feature-tuple:\n', self.f_tuples)
+
 class data_set():
     def __init__(self, xvec, weights) :
-        self.X_vec = torch.from_numpy(xvec)
-        self.weights = torch.from_numpy(weights)
+        self.X_vec = torch.from_numpy(xvec).double()
+        self.weights = torch.from_numpy(weights).double()
         # Number of states 
-        self.K = self.X_xvec.shape[0]
+        self.K = self.X_vec.shape[0]
         # Dimension of state
         self.tot_dim = self.X_vec.shape[1]
         # Indices of states that will appear in mini-batch
@@ -54,14 +71,15 @@ class data_set():
 
         print ('[Info] Range of weights: [%.3e, %.ee]' % (self.weights.min(), self.weights.max()) )
 
-    def __init__(self, states_filename ) :
-
+    @classmethod 
+    def from_file(cls, states_filename) :
         # Reads states from file 
         state_weight_vec = np.loadtxt(states_filename, skiprows=1)
+        K = state_weight_vec.shape[0]
 
-        print ("[Info] loaded data from file: %s\n\t%d states" % (states_filename, state_weight_vec.shape[0]), flush=True)
-        self.__init__(state_weight_vec[:,:-1], state_weight_vec[:,-1])
+        print("[Info] %d sampled data loaded from file: %s" % (K, states_filename))
 
+        return cls(state_weight_vec[:,:-1], state_weight_vec[:,-1])
 
     def set_nonuniform_batch_weight(self) :
         self.batch_uniform_weight = False
@@ -124,13 +142,19 @@ class data_set():
 
 # data of molecular system
 class MD_data_set(data_set) :
-    def __init__(self, states_filename) :
 
-        super(MD_data_set, self).__init__(states_filename)
+    def __init__(self, xvec, weights) :
+        super(MD_data_set, self).__init__(xvec, weights)
         # System in 3D 
         self.dim = 3
         # Number of atoms
         self.num_atoms = int(self.tot_dim / self.dim)
+
+    @classmethod 
+    def from_file(cls, states_filename) :
+        self = super(MD_data_set, cls).from_file(states_filename) 
+        return self
+
 
     # features of data in mini-batch
     def map_to_feature(self, idx):

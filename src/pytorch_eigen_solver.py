@@ -50,6 +50,8 @@ class eigen_solver():
 
         self.features.show_features()
 
+        self.features.convert_atom_ix_by_file('./data/atom_ids.txt')
+
         self.train_max_step = Param.train_max_step
 
         self.load_init_model = Param.load_init_model
@@ -161,15 +163,19 @@ class eigen_solver():
     # 3) Normalize 
     def update_mean_and_var_of_model(self, model):
 
+        self.dataset.generate_minbatch(self.dataset.K, False) 
+
         # Evaluate function value on full data
-        y = model(self.X_vec).detach()
+        y = model(self.dataset).detach()
+
+        weights= self.dataset.weights_minbatch()
 
         # Total weights, will be used for normalization 
-        b_tot_weights = self.weights.sum()
+        tot_weights = weights.sum()
 
         # Mean and variance evaluated on data
-        mean_of_nn = [(y[:,idx] * self.weights).sum() / b_tot_weights for idx in range(self.k)]
-        var_of_nn = [(y[:,idx]**2 * self.weights).sum() / b_tot_weights - mean_of_nn[idx]**2 for idx in range(self.k)]
+        mean_of_nn = [(y[:,idx] * weights).sum() / tot_weights for idx in range(self.k)]
+        var_of_nn = [(y[:,idx]**2 * weights).sum() / tot_weights - mean_of_nn[idx]**2 for idx in range(self.k)]
 
         # Step 2 and 3
         model.shift_and_normalize(mean_of_nn, var_of_nn) 
@@ -591,9 +597,9 @@ class eigen_solver():
 
         # Load trajectory data 
         if self.namd_data_flag == True :
-            self.dataset = data_set.MD_data_set(states_filename)
+            self.dataset = data_set.MD_data_set.from_file(states_filename)
         else :
-            self.dataset = data_set.data_set(states_filename)
+            self.dataset = data_set.data_set.from_file(states_filename)
 
         if self.batch_uniform_weight == False : 
             self.dataset.set_nonuniform_batch_weight() 
