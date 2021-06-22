@@ -126,9 +126,11 @@ class Param:
             self.use_biased_data = config['NAMD'].getboolean('use_biased_data')
             self.weight_threshold_to_remove_states = config['NAMD'].getfloat('weight_threshold_to_remove_states')
             self.align_data_flag = config['NAMD'].get('align_data_flag')
-            self.namd_data_filename_prefix = config['NAMD'].get('namd_data_filename_prefix')
-            self.namd_data_path = config['NAMD'].get('namd_data_path')
-            self.namd_validation_data_path = config['NAMD'].get('namd_validation_data_path')
+            self.namd_dcddata_filename_prefix = config['NAMD'].get('namd_dcddata_filename_prefix')
+            self.namd_dcddata_path = config['NAMD'].get('namd_dcddata_path')
+            self.load_validataion_data_from_dcdfile = config['NAMD'].getboolean('load_validataion_data_from_dcdfile')
+            if self.load_validataion_data_from_dcdfile == False :
+                self.validation_txt_data_filename_prefix = config['NAMD'].get('validation_txt_data_filename_prefix')
 
             # Physical quantities 
             # Boltzmann constant (unit: kcal/(mol*K)). We use the same value as in NAMD.
@@ -139,4 +141,5 @@ class Param:
 
         # Log file for training 
         self.log_filename = config['default'].get('log_filename')
+
 

@@ -27,13 +27,17 @@ def f_on_angle(xvec, angle, idx) :
 
 Param = read_parameters.Param()
 
-namd_loader = namd_loader_dipeptide.namd_data_loader(Param, True) 
-xvec, angles, weights = namd_loader.load_all()
+if Param.load_validataion_data_from_dcdfile == True :
+    namd_loader = namd_loader_dipeptide.namd_data_loader(Param, True) 
+    xvec, angles, weights = namd_loader.load_all()
+    dataset = data_set.MD_data_set(xvec, weights)
+else :
+    states_filename = './data/%s.txt' % (Param.validation_txt_data_filename_prefix)
+    dataset = data_set.MD_data_set(states_filename)
 
 print ("angle=", angles.shape)
 
-xvec = torch.from_numpy(xvec).double()
-K = xvec.shape[0]
+K = dataset.K
 
 print ("Length of Trajectory: %d\n" % K)
 
@@ -48,27 +52,15 @@ model = torch.load(file_name)
 model.eval()
 print ("Neural network loaded\n")
 
-b_tot_weights = sum(weights) 
-
-num_test = 0
-mean_list = np.zeros(num_test)
-var_list = np.zeros(num_test)
-
-for f_idx in range(num_test) :
-    test_val = f_on_angle(xvec, angles, f_idx).numpy()
-    mean_list[f_idx] = (test_val * weights).sum() / b_tot_weights 
-    var_list[f_idx]  = (test_val**2 * weights).sum() / b_tot_weights - mean_list[f_idx] **2 
-
-if num_test > 0 :
-    print ("Means: ", mean_list) 
-    print ("Vars: ", var_list) 
+dataset.generate_minbatch(dataset.K, False)
 
 # Evaluate neural network functions at states
-Y_hat_all = model(xvec).detach().numpy()
+Y_hat_all = model(dataset).detach().numpy()
 
 print (Y_hat_all.shape)
 
 if Param.all_k_eigs : # In this case, output the first k eigenfunctions
+    weights = dataset.weights
     b_tot_weights = sum(weights) 
     mean_list = [(Y_hat_all[:,idx] * weights).sum() / b_tot_weights for idx in range(k)]
     var_list = [(Y_hat_all[:,idx]**2 * weights).sum() / b_tot_weights - mean_list[idx]**2 for idx in range(k)]

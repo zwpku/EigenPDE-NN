@@ -27,26 +27,19 @@ class feature_tuple():
 
     def show_features(self) :
         print ('No. of features: ', self.num_features)
-        print ('Dim of features: ', self.f_dim)
 
-        for i in range(self.num_features): 
-          print ('%dth feature:' % (i+1), self.f_tuples[i]) 
+        if self.num_features > 0 :
+            print ('Dim of features: ', self.f_dim)
+
+            for i in range(self.num_features): 
+              print ('%dth feature:' % (i+1), self.f_tuples[i]) 
 
 class data_set():
-    def __init__(self, states_filename ) :
-
-        # Reads states from file 
-        state_weight_vec = np.loadtxt(states_filename, skiprows=1)
-        
+    def __init__(self, xvec, weights) :
+        self.X_vec = torch.from_numpy(xvec)
+        self.weights = torch.from_numpy(weights)
         # Number of states 
-        self.K = state_weight_vec.shape[0]
-
-        self.X_vec = torch.from_numpy(state_weight_vec[:,:-1])
-        self.weights = torch.from_numpy(state_weight_vec[:,-1])
-
-        print ("[Info] loaded data from file: %s\n\t%d states" % (states_filename, self.K), flush=True)
-        print ('[Info] Range of weights: [%.3e, %.ee]' % (self.weights.min(), self.weights.max()) )
-
+        self.K = self.X_xvec.shape[0]
         # Dimension of state
         self.tot_dim = self.X_vec.shape[1]
         # Indices of states that will appear in mini-batch
@@ -58,6 +51,17 @@ class data_set():
         
         self.features = feature_tuple(None)
         self.num_features = 0 
+
+        print ('[Info] Range of weights: [%.3e, %.ee]' % (self.weights.min(), self.weights.max()) )
+
+    def __init__(self, states_filename ) :
+
+        # Reads states from file 
+        state_weight_vec = np.loadtxt(states_filename, skiprows=1)
+
+        print ("[Info] loaded data from file: %s\n\t%d states" % (states_filename, state_weight_vec.shape[0]), flush=True)
+        self.__init__(state_weight_vec[:,:-1], state_weight_vec[:,-1])
+
 
     def set_nonuniform_batch_weight(self) :
         self.batch_uniform_weight = False
@@ -84,17 +88,19 @@ class data_set():
         if minbatch_flag == True :
             # Randomly generate indices of samples from data set 
             self.active_indices = random.choices(range(self.K), cum_weights=self.cum_weights, k=batch_size)
+            self.batch_size = batch_size
         else :
-            x_batch_index = range(self.K)
+            if batch_size != self.K:
+                print ("\tWarning: all states (%d) are selected. Value of batch_size (%d) is ingored." % (self.K, batch_size))
+            self.active_indices = range(self.K)
+            self.batch_size = self.K
 
         #  Choose samples corresonding to those indices,
         #  and reshape the array to avoid the problem when dim=1
-        self.x_batch = torch.reshape(self.X_vec[self.active_indices], (batch_size, self.tot_dim))
+        self.x_batch = torch.reshape(self.X_vec[self.active_indices], (self.batch_size, self.tot_dim))
 
         # This is needed in order to compute spatial gradients
         self.x_batch.requires_grad = True
-
-        self.batch_size = self.batch_size
 
     def map_to_feature(self, idx):
         pass
@@ -113,8 +119,8 @@ class data_set():
     def write_all_features_file(self, feature_filename) :
         # Use all data
         self.generate_minbatch(self.K, False)
-        xf = self.map_to_all_features() 
-        np.savetxt(feature_filename, xf, header='%d' % (self.K), comments="", fmt="%.10f")
+        xf = self.map_to_all_features().detach().numpy() 
+        np.savetxt(feature_filename, xf, header='%d %d' % (self.K, self.f_dim), comments="", fmt="%.10f")
 
 # data of molecular system
 class MD_data_set(data_set) :
@@ -137,20 +143,20 @@ class MD_data_set(data_set) :
             r34 = x[:, ag[3], :] - x[:, ag[2], :]
             n1 = torch.cross(r12, r23)
             n2 = torch.cross(r23, r34)
-            cos_phi = (n1*n2).sum(dim=1)
-            sin_phi = (n1 * r34).sum(dim=1) * torch.norm(r23, dim=1)
+            cos_phi = (n1*n2).sum(dim=1, keepdim=True)
+            sin_phi = (n1 * r34).sum(dim=1, keepdim=True) * torch.norm(r23, dim=1, keepdim=True)
             radius = torch.sqrt(cos_phi**2 + sin_phi**2)
-            return torch.stack((cos_phi / radius, sin_phi / radius), dim=1)
+            return torch.cat((cos_phi / radius, sin_phi / radius), dim=1)
 
         if f_name == 'angle': 
             r21 = x[:, ag[0], :] - x[:, ag[1], :]
             r23 = x[:, ag[2], :] - x[:, ag[1], :]
-            r21l = torch.norm(r21, dim=1)
-            r23l = torch.norm(r23, dim=1)
-            cos_angle = (r21 * r23).sum(dim=1) / (r21l * r23l)
-            return cos_angle.reshape((-1,1))
+            r21l = torch.norm(r21, dim=1, keepdim=True)
+            r23l = torch.norm(r23, dim=1, keepdim=True)
+            cos_angle = (r21 * r23).sum(dim=1, keepdim=True) / (r21l * r23l)
+            return cos_angle
 
         if f_name == 'bond': 
             r12 = x[:, ag[1], :] - x[:, ag[0], :]
-            return torch.norm(r12, dim=1).reshape((-1,1))
+            return torch.norm(r12, dim=1, keepdim=True)
 

@@ -38,7 +38,7 @@ class MySequential(torch.nn.Module):
                 xf = self.activations[i](xf)
         return xf
 
-    # x is an instance of class data_set 
+    # x should be an instance of the class data_set 
     def forward(self, x):
         xf = x.map_to_all_features()
         return self.feature_forward(xf) 

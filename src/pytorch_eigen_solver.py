@@ -111,7 +111,6 @@ class eigen_solver():
             self.use_reduced_2nd_penalty = False 
             print ('Change the flag use_reduced_2nd_penalty=False, since reduced 2nd-order penalty is supported only when Rayleigh quotient is used.\n')
 
-        print ("Diagonal constants (size=%d):\n" % len(self.diag_coeff), self.diag_coeff)
         print ("[Info]  beta = %.4f" % (self.beta))
         print ("[Info]  seed = %d" % (seed))
         print ("[Info]  dim = %d\n" % self.tot_dim)
@@ -601,11 +600,18 @@ class eigen_solver():
 
         if self.features.num_features > 0 :
             self.dataset.set_features(self.features)
+
+            # Output features to file
+            feature_filename = './data/features_on_data.txt'
+            self.dataset.write_all_features_file(feature_filename)
+            print ('[Info] Features along data are written to file: %s' % feature_filename)
+
             # Include the feature layer and the output layers of neural network
             self.arch_list = [self.features.f_dim] + self.arch_list + [1]
         else :
             # Include the input/output layers of neural network
             self.arch_list = [self.dataset.tot_dim] + self.arch_list + [1]
+
 
         # Load trained neural network
         if self.load_init_model == True :
@@ -637,8 +643,8 @@ class eigen_solver():
         tot_num_parameters = sum([p.numel() for p in self.model.parameters()])
         elapsed_time = time.process_time() - self.start_time
 
-        print( '\n[Info] Time used in loading data: %.2f Sec\n' % elapsed_time )
-        print('\n[Info] Total number of parameters in networks: %d\n' % tot_num_parameters) 
+        print( '\n[Info] Time spent for loading data: %.2f Sec' % elapsed_time )
+        print( '[Info] Total number of parameters in networks: %d' % tot_num_parameters )  
         print ("[Info]  NN architecture:", self.arch_list)
 
         # Train the networks
