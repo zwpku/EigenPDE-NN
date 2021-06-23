@@ -610,10 +610,10 @@ class eigen_solver():
             # Output features to file
             feature_filename = './data/features_on_data.txt'
             self.dataset.write_all_features_file(feature_filename)
-            print ('[Info] Features along data are written to file: %s' % feature_filename)
+            print ('[Info] Features (and weights) along data are written to file: %s' % feature_filename)
 
             # Include the feature layer and the output layers of neural network
-            self.arch_list = [self.features.f_dim] + self.arch_list + [1]
+            self.arch_list = [self.dataset.dim_of_features()] + self.arch_list + [1]
         else :
             # Include the input/output layers of neural network
             self.arch_list = [self.dataset.tot_dim] + self.arch_list + [1]
@@ -628,6 +628,7 @@ class eigen_solver():
         else :
             # Initialize networks 
             self.model = network_arch.MyNet(self.arch_list, self.activation_name, self.k) 
+
         self.model_bak = network_arch.MyNet(self.arch_list, self.activation_name, self.k)
 
         # These networks record training results of several consecutive training steps

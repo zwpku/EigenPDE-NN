@@ -26,15 +26,18 @@ class feature_tuple():
             self.f_tuples = tuple(self.f_tuples)
 
     def show_features(self) :
-        print ('No. of features: ', self.num_features)
+        print ('[Info]  No. of features: ', self.num_features)
 
         if self.num_features > 0 :
-            print ('Dim of features: ', self.f_dim)
+            print ('\tFeature dimension: ', self.f_dim)
 
             for i in range(self.num_features): 
-              print ('%dth feature:' % (i+1), self.f_tuples[i]) 
+              print ('\t%dth feature:' % (i+1), self.f_tuples[i]) 
 
     def convert_atom_ix_by_file(self, ids_filename) :
+
+        if self.num_features == 0 :
+            return 
         self.ix_array = np.loadtxt(ids_filename, skiprows=1, dtype=int)
         K = len(self.ix_array)
         idx_vec = np.ones(int(np.max(self.ix_array))+1, dtype=int) * -1 
@@ -49,7 +52,9 @@ class feature_tuple():
 
         self.f_tuples = tuple(tmp_f_tuples)
 
-        print ('[Info] Converted feature-tuple:\n', self.f_tuples)
+        print ('[Info] Converted feature-tuple:')
+        for f_id in range(len(self.f_tuples)) :
+            print ('\t%dth feature:' % (f_id+1), self.f_tuples[f_id])
 
 class data_set():
     def __init__(self, xvec, weights) :
@@ -59,7 +64,7 @@ class data_set():
         self.K = self.X_vec.shape[0]
         # Dimension of state
         self.tot_dim = self.X_vec.shape[1]
-        # Indices of states that will appear in mini-batch
+        # Indices of states that will appear in mini-batch. Use all by default.
         self.active_index = range(self.K)
         self.batch_size = self.K
 
@@ -69,15 +74,14 @@ class data_set():
         self.features = feature_tuple(None)
         self.num_features = 0 
 
-        print ('[Info] Range of weights: [%.3e, %.ee]' % (self.weights.min(), self.weights.max()) )
+        print ('[Info]  Range of weights: [%.3e, %.ee]' % (self.weights.min(), self.weights.max()) )
 
     @classmethod 
     def from_file(cls, states_filename) :
         # Reads states from file 
         state_weight_vec = np.loadtxt(states_filename, skiprows=1)
-        K = state_weight_vec.shape[0]
 
-        print("[Info] %d sampled data loaded from file: %s" % (K, states_filename))
+        print("[Info] %d sampled data loaded from file: %s" % (state_weight_vec.shape[0], states_filename))
 
         return cls(state_weight_vec[:,:-1], state_weight_vec[:,-1])
 
@@ -123,12 +127,14 @@ class data_set():
     def map_to_feature(self, idx):
         pass
 
+    # This function should be called by subclass, where map_to_feature is defined.
     def map_to_all_features(self):
         if self.num_features > 0 :
             for i in range(self.num_features) :
                 if i == 0 :
                     xf = self.map_to_feature(i) 
                 else :
+                    # Each column corresponds to one feature 
                     xf = torch.cat((xf, self.map_to_feature(i)), dim=1)
             return xf
         else :
@@ -137,10 +143,11 @@ class data_set():
     def write_all_features_file(self, feature_filename) :
         # Use all data
         self.generate_minbatch(self.K, False)
-        xf = self.map_to_all_features().detach().numpy() 
-        np.savetxt(feature_filename, xf, header='%d %d' % (self.K, self.f_dim), comments="", fmt="%.10f")
+        # Append weights to last column (after features) 
+        xf_w = torch.cat((self.map_to_all_features(), self.weights.reshape((-1,1))), dim=1).detach().numpy() 
+        np.savetxt(feature_filename, xf_w, header='%d %d' % (self.K, self.f_dim + 1), comments="", fmt="%.10f")
 
-# data of molecular system
+# Data of molecular system
 class MD_data_set(data_set) :
 
     def __init__(self, xvec, weights) :
@@ -155,8 +162,7 @@ class MD_data_set(data_set) :
         self = super(MD_data_set, cls).from_file(states_filename) 
         return self
 
-
-    # features of data in mini-batch
+    # Features of data in mini-batch
     def map_to_feature(self, idx):
         x = self.x_batch.reshape((-1, self.num_atoms, self.dim))
         f_name = self.features.f_tuples[idx][0]

@@ -5,16 +5,13 @@ class MySequential(torch.nn.Module):
     def __init__(self, size_list, activation_name):
         super(MySequential, self).__init__()
 
-        # Be careful, not just use: self.nn_dims = size_list 
-        self.nn_dims = size_list[:]
-
+        self.nn_dims = size_list
         self.linears = torch.nn.ModuleList([torch.nn.Linear(self.nn_dims[i], self.nn_dims[i+1]) for i in range(len(self.nn_dims)-1)])
 
         try :
             activation = getattr(torch.nn, activation_name) 
             print ('[Info] Build NN with activation function %s.' % activation_name)
         except : 
-            #self.activations = torch.nn.ModuleList([activation()  for i in range(len(self.nn_dims)-2)])
             print ('[Warning] No activation function with name %s. Use CELU instead' % activation_name)
             activation = torch.nn.CELU
 

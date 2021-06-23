@@ -342,7 +342,6 @@ class namd_data_loader() :
 
         print("[Info] Atom indices are stored to: %s" % atom_ids_file)
 
-
     def load_all(self):
 
         self.load_namd_traj()

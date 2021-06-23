@@ -60,7 +60,6 @@ class Param:
             self.nn_features = config['NeuralNetArch']['features']
         except:
             self.nn_features = None
-            print ('[Info] No features found')
 
         # Total gradient steps
         self.train_max_step = config['Training'].getint('train_max_step')

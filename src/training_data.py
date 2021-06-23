@@ -1,4 +1,7 @@
 import namd_loader_dipeptide
+import potentials 
+import numpy as np
+import random
 
 class PrepareData() :
     def __init__(self, Param) :
@@ -6,10 +9,6 @@ class PrepareData() :
 
     # Sample data by simulating SDE
     def generate_sample_data(self) :
-
-        import potentials 
-        import numpy as np
-        import random
 
         PotClass = potentials.PotClass(self.Param.dim, self.Param.pot_id, self.Param.stiff_eps)
 
@@ -50,7 +49,6 @@ class PrepareData() :
         print_step_interval = int(K / 10)
 
         print ("Next, generate %d states" % K)
-        tot_weight = 0.0
         kk = 0 
         for i in range(K):
             xi = np.random.randn(dim)
@@ -60,25 +58,22 @@ class PrepareData() :
                 X_vec[kk, 0:dim] = X0
                 # Set weights in the last column
                 X_vec[kk][dim] = np.exp(-(beta - SDE_beta) * PotClass.V(X0.reshape(1,dim)) )
-                tot_weight += X_vec[kk][dim]
                 kk += 1
 
             if i % print_step_interval == 0:
                print ("%4.1f%% finished." % (i / K * 100), flush=True)
 
-        X_vec[:,dim] /= (tot_weight / kk)
-
-        index = X_vec[:,0] < 0
-        print (sum(X_vec[index,1]), sum(X_vec[:,1]))
+        mean_weight = np.mean(X_vec[:,dim])
+        X_vec[:,dim] /= mean_weight 
 
         states_file_name = './data/%s.txt' % (data_filename_prefix)
         np.savetxt(states_file_name, X_vec[:kk,:], header='%d %d' % (kk, dim), comments="", fmt="%.10f")
-        print("\nsampled data are stored to: %s" % states_file_name)
+        print("\nSampled data are stored to: %s" % states_file_name)
 
     def prepare_data(self) :
         if self.Param.namd_data_flag == True :
             # use MD data 
-            print ("Generate training data from MD data\n")
+            print ("Using MD data as training data\n")
             namd_loader = namd_loader_dipeptide.namd_data_loader(self.Param, False) 
             namd_loader.save_namd_data_to_txt()
         else :
