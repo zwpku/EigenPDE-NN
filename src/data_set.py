@@ -10,17 +10,18 @@ class feature_tuple():
             self.f_dim = 0 
             self.f_tuples = []
             for feature_str in features.split(';') :
-                feature_str_split = feature_str.strip("{( )}").split(',')
+                feature_str_split = feature_str.strip("{( )}\n").split(',')
                 # diheral angle, angle and bond length are considered in the current implementation
                 f_name = feature_str_split[0]
                 if f_name == 'dihedral' : 
-                    self.f_dim += 2
+                    span = 2
                 if f_name == 'bond' : 
-                    self.f_dim += 1
+                    span = 1
                 if f_name == 'angle' : 
-                    self.f_dim += 1
+                    span = 1
                 ag = [int(xx) for xx in feature_str_split[1:]]
-                self.f_tuples.append([f_name, ag])
+                self.f_tuples.append([f_name, ag, list(range(self.f_dim, self.f_dim + span))])
+                self.f_dim += span
 
             self.num_features = len(self.f_tuples) 
             self.f_tuples = tuple(self.f_tuples)
@@ -32,7 +33,7 @@ class feature_tuple():
             print ('\tFeature dimension: ', self.f_dim)
 
             for i in range(self.num_features): 
-              print ('\t%dth feature:' % (i+1), self.f_tuples[i]) 
+              print ('\t%dth feature: ' % (i+1), self.f_tuples[i]) 
 
     def convert_atom_ix_by_file(self, ids_filename) :
 
@@ -48,7 +49,7 @@ class feature_tuple():
         tmp_f_tuples = []
         for f_idx in range(self.num_features) :
             ag = [idx_vec[idx] for idx in self.f_tuples[f_idx][1]]
-            tmp_f_tuples.append([self.f_tuples[f_idx][0], ag])
+            tmp_f_tuples.append([self.f_tuples[f_idx][0], ag, self.f_tuples[f_idx][2]])
 
         self.f_tuples = tuple(tmp_f_tuples)
 

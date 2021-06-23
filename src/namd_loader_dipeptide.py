@@ -238,6 +238,12 @@ class namd_data_loader() :
         # Number of selected atoms
         self.atom_num = len(self.selected_atoms.names)
 
+        K = len(u.trajectory[::self.load_data_how_often])
+
+        print ( '\n[Info] How_often=%d...\n\tNames of %d selected atoms:\n\t %s\n\tNames of angle-related atoms:\n\t %s\n' % (self.load_data_how_often, self.atom_num, self.selected_atoms.names, self.selected_atoms.names[angle_col_index]) )
+
+        print ( '[Info] Length of loaded trajectory: %d\n\tdt=%.2fps, total time = %.2fns' % (K, u.coord.dt * self.load_data_how_often, total_time_traj) )
+
         if self.load_dcd_file == False :
             return 
 
@@ -255,12 +261,7 @@ class namd_data_loader() :
 
             print("[Info] Aligning data (%s)...done." % self.align_data_flag, flush=True)
 
-        K = len(u.trajectory[::self.load_data_how_often])
-
-        print ( '\n[Info] Loading trajectory data (how_often=%d)...\n\tNames of %d selected atoms:\n\t %s\n\tNames of angle-related atoms:\n\t %s\n' % (self.load_data_how_often, self.atom_num, self.selected_atoms.names, self.selected_atoms.names[angle_col_index]) )
-
-        print ( '[Info] Length of loaded trajectory: %d\n\tdt=%.2fps, total time = %.2fns' % (K, u.coord.dt * self.load_data_how_often, total_time_traj) )
-
+        print ( '\n[Info] Loading trajectory data ...\n')
         # Change the 3d vector to 2d vector
         self.traj_data = np.array([self.selected_atoms.positions for ts in u.trajectory[::self.load_data_how_often]]).reshape((-1, self.atom_num * 3))
 
