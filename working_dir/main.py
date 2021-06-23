@@ -2,7 +2,6 @@
 import torch
 import time
 
-import sys
 import os
 
 # Create directory ./data, if not exist yet.

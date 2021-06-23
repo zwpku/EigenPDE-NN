@@ -5,6 +5,7 @@ from MDAnalysis import transformations
 from MDAnalysis.lib.distances import calc_dihedrals
 from MDAnalysis.analysis import align, rms 
 from functools import reduce
+import os
 
 import math
 import numpy as np
@@ -34,6 +35,7 @@ class namd_data_loader() :
         # Compute beta depending on temperature
         self.beta = Param.namd_beta
 
+        self.load_dcd_file = True
 
     # Plot angle data to file
     def plot_angle_and_weight_on_grid(self):
@@ -233,6 +235,11 @@ class namd_data_loader() :
             angle_col_index = [0, 1, 2, 3, 4]
 
         self.selected_atoms = u.select_atoms(select_argument)
+        # Number of selected atoms
+        self.atom_num = len(self.selected_atoms.names)
+
+        if self.load_dcd_file == False :
+            return 
 
         if self.align_data_flag != 'none' : 
             # Align states by tranforming coordinates (e.g. rotation, translation...)
@@ -248,42 +255,7 @@ class namd_data_loader() :
 
             print("[Info] Aligning data (%s)...done." % self.align_data_flag, flush=True)
 
-        self.load_angles_from_colvar_traj() 
-
         K = len(u.trajectory[::self.load_data_how_often])
-
-        if self.which_data_to_use != 'angle' and self.angles.shape[0] != K: "colvars trajectoy (length=%d) does not match data (length=%d) " % (self.angles.shape[0], K)
-
-        """
-        # Test the calculation of dihedral angles 
-        # Two dihedral angles for data in trajectory 
-        print ('Compute dihedral angles\n')
-
-        # Select relevant atoms for two angles
-        selected_atoms = u.select_atoms("bynum 1 3 13 15 17")
-        traj_data = np.array([selected_atoms.positions for ts in u.trajectory[::self.load_data_how_often][0:5]])
-
-        # Angles [phi, psi] are defined by the groups of atoms 
-        #    [13, 15, 17 ,1], and [15, 17 ,1, 3], respectively.  
-        phi_angles = calc_dihedrals(traj_data[:,2,:], traj_data[:,3,:], traj_data[:,4,:], traj_data[:,0,:]) / math.pi * 180
-        psi_angles = calc_dihedrals(traj_data[:,3,:], traj_data[:,4,:], traj_data[:,0,:], traj_data[:,1,:]) / math.pi * 180
-
-        #print ('[INFO] Angles of first 5 states:\n', angle_data[0:5,:])
-        print (phi_angles[0:5])
-        print (psi_angles[0:5])
-        print (traj_data.reshape((-1,15)))
-        """
-
-        if self.use_biased_data == True : 
-            print("[Info] Load PMF along states\n", flush=True)
-            # Compute weights along trajectory according to PMF value of angles
-            self.weights_of_colvars_by_pmf() 
-        else :
-            print("[Info] Since data are unbiased, all weights are 1\n", flush=True)
-            self.weights = np.ones(K) 
-
-        # Number of selected atoms
-        self.atom_num = len(self.selected_atoms.names)
 
         print ( '\n[Info] Loading trajectory data (how_often=%d)...\n\tNames of %d selected atoms:\n\t %s\n\tNames of angle-related atoms:\n\t %s\n' % (self.load_data_how_often, self.atom_num, self.selected_atoms.names, self.selected_atoms.names[angle_col_index]) )
 
@@ -292,6 +264,10 @@ class namd_data_loader() :
         # Change the 3d vector to 2d vector
         self.traj_data = np.array([self.selected_atoms.positions for ts in u.trajectory[::self.load_data_how_often]]).reshape((-1, self.atom_num * 3))
 
+        self.total_weights_sub_regions()
+
+    def cut_states_with_small_weights(self) :
+
         eff_indices = self.weights >= self.weight_threshold_to_remove_states
 
         self.weights = self.weights[eff_indices]
@@ -299,51 +275,70 @@ class namd_data_loader() :
         self.angles = self.angles[eff_indices]
 
         # Rescale weights (again) by constant 
-        rescale = np.sum(self.weights) / K
+        rescale = np.mean(self.weights)
         self.weights /= rescale
 
         print ("\n[Info] States whose weight is below %.2e are removed. %d states left." % (self.weight_threshold_to_remove_states, self.traj_data.shape[0]) )
 
         print ('\t(min,max,sum) of (renormalized) weights =(%.3e, %.3e, %.3e)\n' % (min(self.weights), max(self.weights), sum(self.weights) ) )
 
-        self.total_weights_sub_regions()
+    def compute_weights(self) :
+        if self.use_biased_data == True : 
+            print("[Info] Load PMF along states\n", flush=True)
+            # Compute weights along trajectory according to PMF value of angles
+            self.weights_of_colvars_by_pmf() 
+        else :
+            K = self.angles.shape[0]
+            print("[Info] Since data are unbiased, all weights are 1\n", flush=True)
+            self.weights = np.ones(K) 
 
+    def load_all(self):
+
+        self.load_namd_traj()
+        self.load_angles_from_colvar_traj() 
+        self.compute_weights() 
+
+        if self.load_dcd_file == True :
+            # Actual length of loaded data 
+            K = self.traj_data.shape[0]
+            print("[Info] In total, %d states have been loaded\n" % K, flush=True)
+
+            if self.angles.shape[0] != K : 
+                print ("colvars trajectoy (length=%d) does not match data (length=%d) " % (self.angles.shape[0], K))
+                exit(1)
 
 # load sampled MD data from file, and save it to txt file
     def save_namd_data_to_txt(self):
 
-        self.load_namd_traj()
+        # filename of trajectory data 
+        states_file_name = './data/%s.txt' % (self.data_filename_prefix)
+
+        if os.path.isfile(states_file_name) :
+            print ('Dcd file will not be loaded since data file already exists: %s!\n' % states_file_name)
+            self.load_dcd_file = False 
+
+        self.load_all() 
 
         if self.use_biased_data == True : 
             # Plot PMF on angle mesh
             self.plot_angle_and_weight_on_grid()
 
+        K = self.angles.shape[0]
+
         # Save angles of states along trajectory
         angle_output_file = './data/angle_along_traj.txt' 
         print ( '[Info] Angles along trajectory are saved to file: %s\n' % angle_output_file)
-        np.savetxt(angle_output_file, self.angles, header='%d' % (self.angles.shape[0]), comments="", fmt="%.10f")
+        np.savetxt(angle_output_file, self.angles, header='%d' % (K), comments="", fmt="%.10f")
 
-        # Save trajectory data to txt file
-        states_file_name = './data/%s.txt' % (self.data_filename_prefix)
+        if self.load_dcd_file == True :
+            # Save trajectory data to txt file
+            np.savetxt(states_file_name, np.concatenate((self.traj_data, self.weights.reshape((K,1))), axis=1), header='%d %d' % (K, 3 * self.atom_num), comments="", fmt="%.10f")
 
-        # Actual length of loaded data 
-        K = self.traj_data.shape[0]
+            print("[Info] Sampled data are stored to: %s" % states_file_name)
 
-        print("[Info] In total, %d states have been loaded\n" % K, flush=True)
-
-        # Use trajectory data of selected atoms 
-        np.savetxt(states_file_name, np.concatenate((self.traj_data, self.weights.reshape((K,1))), axis=1), header='%d %d' % (K, 3 * self.atom_num), comments="", fmt="%.10f")
-
-        print("[Info] Sampled data are stored to: %s" % states_file_name)
-
-         # Save trajectory data to txt file
+        # Save indices of atoms to txt file
         atom_ids_file = './data/atom_ids.txt' 
         np.savetxt(atom_ids_file, self.selected_atoms.ix_array, header='%d' % self.atom_num, comments="", fmt="%d")
 
         print("[Info] Atom indices are stored to: %s" % atom_ids_file)
-
-    def load_all(self):
-
-        self.load_namd_traj()
-        return self.traj_data, self.angles, self.weights 
 

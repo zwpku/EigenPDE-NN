@@ -25,8 +25,8 @@ Param = read_parameters.Param()
 
 if Param.load_validataion_data_from_dcdfile == True :
     namd_loader = namd_loader_dipeptide.namd_data_loader(Param, True) 
-    xvec, angles, weights = namd_loader.load_all()
-    dataset = data_set.MD_data_set(xvec, weights)
+    namd_loader.load_all()
+    dataset = data_set.MD_data_set(namd_loader.traj_data, namd_loader.weights)
 else :
     states_filename = './data/%s.txt' % (Param.validation_txt_data_filename_prefix)
     dataset = data_set.MD_data_set.from_file(states_filename)

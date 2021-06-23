@@ -52,7 +52,7 @@ class feature_tuple():
 
         self.f_tuples = tuple(tmp_f_tuples)
 
-        print ('[Info] Converted feature-tuple:')
+        print ('[Info] Feature-tuple converted to local indices: ')
         for f_id in range(len(self.f_tuples)) :
             print ('\t%dth feature:' % (f_id+1), self.f_tuples[f_id])
 
