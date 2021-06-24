@@ -23,15 +23,11 @@ import data_set
 
 Param = read_parameters.Param()
 
-if Param.load_validataion_data_from_dcdfile == True :
-    namd_loader = namd_loader_dipeptide.namd_data_loader(Param, True) 
-    namd_loader.load_all()
-    dataset = data_set.MD_data_set(namd_loader.traj_data, namd_loader.weights)
-else :
-    states_filename = './data/%s.txt' % (Param.validation_txt_data_filename_prefix)
-    dataset = data_set.MD_data_set.from_file(states_filename)
+states_filename = './data/%s.txt' % (Param.data_filename_prefix_validation)
+dataset = data_set.MD_data_set.from_file(states_filename)
 
 features = data_set.feature_tuple(Param.nn_features)
+features.convert_atom_ix_by_file('./data/atom_ids.txt')
 
 if features.num_features > 0 :
     dataset.set_features(features)

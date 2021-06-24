@@ -8,8 +8,13 @@ import sys
 sys.path.append('../src/')
 
 import read_parameters 
-import training_data
+from data_generator import PrepareData
+
+training_data = True
+
+if len(sys.argv) > 1 and sys.argv[1] == 'test' :
+    training_data = False
 
 Param = read_parameters.Param()
-data_proc = training_data.PrepareData(Param) 
-data_proc.prepare_data()
+data_proc = PrepareData(Param) 
+data_proc.prepare_data(training_data)

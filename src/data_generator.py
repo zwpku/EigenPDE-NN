@@ -70,11 +70,11 @@ class PrepareData() :
         np.savetxt(states_file_name, X_vec[:kk,:], header='%d %d' % (kk, dim), comments="", fmt="%.10f")
         print("\nSampled data are stored to: %s" % states_file_name)
 
-    def prepare_data(self) :
+    def prepare_data(self, training_data=True) :
         if self.Param.namd_data_flag == True :
             # use MD data 
-            print ("Using MD data as training data\n")
-            namd_loader = namd_loader_dipeptide.namd_data_loader(self.Param, False) 
+            print ("Using MD data as training/validation data\n")
+            namd_loader = namd_loader_dipeptide.namd_data_loader(self.Param, training_data) 
             namd_loader.save_namd_data_to_txt()
         else :
             # Sample data by simulating SDE

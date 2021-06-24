@@ -20,7 +20,7 @@ fig, ax = plt.subplots(1, tot_num_k, figsize=(14, 5.5))
 
 print (tot_num_k, idx_vec)
 
-angle_filename = '../%s/data/angle_along_traj.txt' % working_dir_name
+angle_filename = '../%s/data/angle_along_traj_validation.txt' % working_dir_name
 angle_data = np.loadtxt(angle_filename, skiprows=1)
 
 for i in range(len(idx_vec)) : 

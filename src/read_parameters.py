@@ -127,9 +127,7 @@ class Param:
             self.align_data_flag = config['NAMD'].get('align_data_flag')
             self.namd_dcddata_filename_prefix = config['NAMD'].get('namd_dcddata_filename_prefix')
             self.namd_dcddata_path = config['NAMD'].get('namd_dcddata_path')
-            self.load_validataion_data_from_dcdfile = config['NAMD'].getboolean('load_validataion_data_from_dcdfile')
-            if self.load_validataion_data_from_dcdfile == False :
-                self.validation_txt_data_filename_prefix = config['NAMD'].get('validation_txt_data_filename_prefix')
+            self.data_filename_prefix_validation = config['NAMD'].get('data_filename_prefix_validation')
             # Physical quantities 
             # Boltzmann constant (unit: kcal/(mol*K)). We use the same value as in NAMD.
             Kb = 0.001987191 
