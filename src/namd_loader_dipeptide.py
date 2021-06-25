@@ -33,7 +33,7 @@ class namd_data_loader() :
         if training_data == True :
             self.data_filename_prefix = Param.data_filename_prefix
         else :
-            self.data_filename_prefix = Param.data_filename_prefix_validataion
+            self.data_filename_prefix = Param.data_filename_prefix_validation
 
         self.temp_T = Param.temp_T
 

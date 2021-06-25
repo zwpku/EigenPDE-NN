@@ -282,7 +282,6 @@ class eigen_solver():
             ij = self.ij_list[idx]
             # Sum of squares of normalized covariance (or correlation coefficient) between two different eigenfunctions
             penalty[1] += ((self.y[:, ij[0]] * self.y[:, ij[1]] * self.b_weights).sum() / self.b_tot_weights - self.mean_list[ij[0]] * self.mean_list[ij[1]])**2 / (self.var_list[ij[0]] * self.var_list[ij[1]])
-
         return penalty 
 
     # Constraint steps: train neural networks in order to meet constraints
@@ -625,6 +624,10 @@ class eigen_solver():
             file_name = './data/%s' % (self.init_model_name)
             self.model = torch.load(file_name)
             self.model.train()
+            # Set explicitly for continuing training
+            for param in self.model.parameters():
+                param.requires_grad=True
+
         else :
             # Initialize networks 
             self.model = network_arch.MyNet(self.arch_list, self.activation_name, self.k) 
