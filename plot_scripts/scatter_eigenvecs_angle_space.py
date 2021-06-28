@@ -29,14 +29,14 @@ for i in range(len(idx_vec)) :
       base_name = '%s_all' % base_name 
   data_file = open('%s_%d.txt' % (base_name, idx_vec[i]), 'r')
 
-  eigenfun_data = np.loadtxt(data_file, skiprows=1)
-  print ('min-max:' , min(eigenfun_data), max(eigenfun_data)) 
+  eigenfun_data = np.loadtxt(data_file, skiprows=1) * -1.0
+  print ('eigenfun %d:, (min,max)=(%.4f, %.4f)' % (i+1, min(eigenfun_data), max(eigenfun_data)) ) 
 
   if tot_num_k > 1 :
       nn_ax = ax[i]
   else :
       nn_ax = ax
-  sc = nn_ax.scatter(angle_data[:,0], angle_data[:,1], s=1, c=eigenfun_data)  #, vmin=-2.0, vmax=2.0)
+  sc = nn_ax.scatter(angle_data[:,0], angle_data[:,1], s=1, c=eigenfun_data, vmin=-2.4, vmax=1.2)
 
   nn_ax.set_title('%dth eigenfunction' % (idx_vec[i]) , fontsize=20)
 

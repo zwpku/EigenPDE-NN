@@ -45,6 +45,7 @@ class eigen_solver():
         self.use_reduced_2nd_penalty = Param.use_reduced_2nd_penalty
 
         self.activation_name = Param.activation_name
+        self.write_feature_to_file = Param.write_feature_to_file
 
         self.features = data_set.feature_tuple(Param.nn_features) 
 
@@ -606,10 +607,11 @@ class eigen_solver():
         if self.features.num_features > 0 :
             self.dataset.set_features(self.features)
 
-            # Output features to file
-            feature_filename = './data/features_on_data.txt'
-            self.dataset.write_all_features_file(feature_filename)
-            print ('[Info] Features (and weights) along data are written to file: %s' % feature_filename)
+            if self.write_feature_to_file == True : 
+                # Output features to file
+                feature_filename = './data/features_on_data.txt'
+                self.dataset.write_all_features_file(feature_filename)
+                print ('[Info] Features (and weights) along data are written to file: %s' % feature_filename)
 
             # Include the feature layer and the output layers of neural network
             self.arch_list = [self.dataset.dim_of_features()] + self.arch_list + [1]

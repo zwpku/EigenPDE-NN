@@ -24,7 +24,6 @@ class namd_data_loader() :
         self.load_data_how_often = Param.load_data_how_often
         self.align_data_flag =  Param.align_data_flag
 
-        self.namd_data_path = Param.namd_dcddata_path
         self.namd_data_filename_prefix = Param.namd_dcddata_filename_prefix
 
         self.training_data = training_data
@@ -32,8 +31,12 @@ class namd_data_loader() :
         # Filename for output 
         if training_data == True :
             self.data_filename_prefix = Param.data_filename_prefix
+            self.namd_data_path = Param.namd_dcddata_path
         else :
             self.data_filename_prefix = Param.data_filename_prefix_validation
+            self.namd_data_path = Param.namd_dcddata_path_validation
+
+        print ('Paths: %s/%s' % (self.namd_data_path, self.namd_data_filename_prefix) )
 
         self.temp_T = Param.temp_T
 
