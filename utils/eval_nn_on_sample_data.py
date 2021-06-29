@@ -4,7 +4,6 @@ import MDAnalysis as mda
 from MDAnalysis import transformations
 from MDAnalysis.analysis import align, rms 
 
-import matplotlib.pyplot as plt
 from numpy import linalg as LA
 import numpy as np
 import random

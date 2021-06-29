@@ -16,10 +16,11 @@ if not os.path.exists('./fig'):
     print ("Directory ./fig created.")
 
 # List of possible scripts 
-script_name_list = ["../utils/prepare_data.py", "../utils/prepare_data.py test", "../utils/train_nn.py", "../utils/eval_nn_on_grid.py", "../utils/eval_nn_on_sample_data.py", "../utils/eval_nn_on_2d_feature_mesh.py", "../utils/FVD-1d.py", "../utils/FVD-2d.py -eps_monitor"]
+script_name_list = ["../utils/prepare_data.py", "../utils/prepare_data.py test", "../utils/plot_hist_weights_namd.py", "../utils/train_nn.py", "../utils/eval_nn_on_grid.py", "../utils/eval_nn_on_sample_data.py", "../utils/eval_nn_on_2d_feature_mesh.py", "../utils/FVD-1d.py", "../utils/FVD-2d.py -eps_monitor"]
 
 script_info_list = ["Prepare training data",  
         "Prepare test data",
+        "Plot histgram and weights of namd data",
         "Solve eigenvalue PDE by training neural networks", 
         "Evaluate neural network on 1d or 2d grid", 
         "Evaluate neural network on sample data", 

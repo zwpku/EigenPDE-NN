@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-import matplotlib.pyplot as plt
 from numpy import linalg as LA
 import numpy as np
 import random

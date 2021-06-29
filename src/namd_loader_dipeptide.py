@@ -75,6 +75,9 @@ class namd_data_loader() :
             weight_counter[idx, idy] += self.weights[i]
 
         plt.clf()
+        plt.rc('text', usetex=True)
+        plt.rc('font', family='serif')
+
         fig, ax = plt.subplots(1,1)
         # Show the angle counting data in 2d plot
         h = ax.imshow(angle_counter.T, extent=[-180,180, -180, 180], cmap='jet', origin='lower')
@@ -103,11 +106,23 @@ class namd_data_loader() :
 
         plt.clf()
         fig, ax = plt.subplots(1,1)
+
         # Plot may not be smooth at states where counter is zero
-        h = ax.imshow(weight_counter.T, extent=[-180,180, -180, 180], cmap='jet', origin='lower', norm=mpl.colors.LogNorm())
-        plt.colorbar(h)
+        h = ax.imshow(weight_counter.T, extent=[-180,180, -180, 180], cmap='jet', origin='lower', norm=mpl.colors.LogNorm(), vmin=5e-8)
+        ax.set_xlabel(r'$\varphi$', fontsize=27, labelpad=-1, rotation=0)
+        ax.set_ylabel(r'$\psi$', fontsize=27, labelpad=-5, rotation=0)
+        ax.tick_params(axis='x', labelsize=15)
+        ax.tick_params(axis='y', labelsize=15)
+        ax.set_xticks([-150, -100, -50, 0, 50, 100, 150])
+        ax.set_yticks([-150, -100, -50, 0, 50, 100, 150])
+
+        cbar = plt.colorbar(h, ax=ax, pad=0.03)
+        cbar.set_ticks([1e-6, 1e-4, 1e-2, 1])
+        cbar.ax.tick_params(labelsize=20)
+        ax.set_title(r'weights of sample data', fontsize=27)
+
         filename = './fig/weights_of_angles.eps' 
-        plt.savefig(filename)
+        plt.savefig(filename, bbox_inches='tight')
 
         print ('[Info] Plot of 2d weight data saved to: %s\n' % filename)
 
@@ -316,7 +331,13 @@ class namd_data_loader() :
                 print ("colvars trajectoy (length=%d) does not match data (length=%d) " % (self.angles.shape[0], K))
                 exit(1)
 
-# load sampled MD data from file, and save it to txt file
+    def plot_namd_data(self):
+        self.load_angles_from_colvar_traj() 
+        self.compute_weights() 
+        # Plot PMF on angle mesh
+        self.plot_angle_and_weight_on_grid()
+
+    # Load sampled MD data from file, and save it to txt file
     def save_namd_data_to_txt(self):
 
         if self.training_data == False :
@@ -341,10 +362,6 @@ class namd_data_loader() :
             self.load_dcd_file = False 
 
         self.load_all() 
-
-        if self.use_biased_data == True : 
-            # Plot PMF on angle mesh
-            self.plot_angle_and_weight_on_grid()
 
         K = self.angles.shape[0]
 

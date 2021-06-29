@@ -2,7 +2,6 @@
 
 # Compute a two-dimensional eigenvalue problem using finite volume method
 
-import matplotlib
 import sys, slepc4py
 slepc4py.init(sys.argv)
 
