@@ -49,7 +49,8 @@ class namd_data_loader() :
     def plot_angle_and_weight_on_grid(self):
 
         # Grid: [-pi, pi] x [-pi, pi] 
-        numx = numy = 100
+        numx = self.pmf_on_angle_mesh.shape[0]
+        numy = self.pmf_on_angle_mesh.shape[1]
         dx = 360.0 / numx
         dy = 360.0 / numy
 
@@ -96,19 +97,19 @@ class namd_data_loader() :
 
         print ('[Info] Plot of total weight for each 2d-cell saved to: %s\n' % filename)
 
-        # Average weights for each grid cell
-        for i in range (numx):
-            for j in range (numy):
-                if (angle_counter[i,j] > 0):
-                    weight_counter[i,j] /= angle_counter[i,j]
-                else :
-                    weight_counter[i,j] = 1e-12
+        # Compute weights using PMF
+        weights_on_angle_mesh = np.exp(-self.beta * self.pmf_on_angle_mesh)
+
+        # Rescale weights by constant 
+        rescale = np.sum(weights_on_angle_mesh * angle_counter) / num_data
+        weights_on_angle_mesh /= rescale
 
         plt.clf()
         fig, ax = plt.subplots(1,1)
 
         # Plot may not be smooth at states where counter is zero
-        h = ax.imshow(weight_counter.T, extent=[-180,180, -180, 180], cmap='jet', origin='lower', norm=mpl.colors.LogNorm(), vmin=5e-8)
+        #h = ax.imshow(weight_counter.T, extent=[-180,180, -180, 180], cmap='jet', origin='lower', norm=mpl.colors.LogNorm(), vmin=5e-8)
+        h = ax.imshow(weights_on_angle_mesh.T, extent=[-180,180, -180, 180], cmap='jet', origin='lower', norm=mpl.colors.LogNorm(), vmin=5e-8)
         ax.set_xlabel(r'$\varphi$', fontsize=27, labelpad=-1, rotation=0)
         ax.set_ylabel(r'$\psi$', fontsize=27, labelpad=-5, rotation=0)
         ax.tick_params(axis='x', labelsize=15)
@@ -119,7 +120,7 @@ class namd_data_loader() :
         cbar = plt.colorbar(h, ax=ax, pad=0.03)
         cbar.set_ticks([1e-6, 1e-4, 1e-2, 1])
         cbar.ax.tick_params(labelsize=20)
-        ax.set_title(r'weights of sample data', fontsize=27)
+        ax.set_title(r'weights', fontsize=27)
 
         filename = './fig/weights_of_angles.eps' 
         plt.savefig(filename, bbox_inches='tight')
@@ -167,7 +168,7 @@ class namd_data_loader() :
         print ('[Info] 2d grid mesh for angles:\n\t[%.2f, %.2f], nx=%d\n\t[%.2f, %.2f], ny=%d' % (lbx, lbx + numx * dx, numx, lby, lby + numx * dy, numy))
 
         # Read PMF data on mesh of angles 
-        pmf_on_angle_mesh = np.loadtxt(colvar_pmf_filename)[:,2].reshape([numx, numy])
+        self.pmf_on_angle_mesh = np.loadtxt(colvar_pmf_filename)[:,2].reshape([numx, numy])
 
         K_angle = self.angles.shape[0] 
 
@@ -179,7 +180,7 @@ class namd_data_loader() :
             angle_idx[i] = [min(numx-1, angle_idx[i][0]), min(numy-1, angle_idx[i][1])]
 
         # Obtain PMF for data according to indices on the grid 
-        pmf_along_colvars = np.array([pmf_on_angle_mesh[angle_idx[i][0]][angle_idx[i][1]] for i in range(K_angle)])
+        pmf_along_colvars = np.array([self.pmf_on_angle_mesh[angle_idx[i][0]][angle_idx[i][1]] for i in range(K_angle)])
 
         # Compute weights using PMF
         weights_along_colvars = np.exp(-self.beta * pmf_along_colvars)

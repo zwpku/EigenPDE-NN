@@ -22,7 +22,14 @@ import data_set
 
 Param = read_parameters.Param()
 
-states_filename = './data/%s.txt' % (Param.data_filename_prefix_validation)
+print ('use validation data [y/n]:') 
+use_validation_data = input()
+
+if use_validation_data == 'y': 
+    states_filename = './data/%s.txt' % (Param.data_filename_prefix_validation)
+else :
+    states_filename = './data/%s.txt' % (Param.data_filename_prefix)
+
 dataset = data_set.MD_data_set.from_file(states_filename)
 
 features = data_set.feature_tuple(Param.nn_features)
@@ -61,7 +68,11 @@ if Param.all_k_eigs : # In this case, output the first k eigenfunctions
     print ("Vars: ", var_list) 
 
     for idx in range(k):
-        eigen_file_name_output = './data/%s_on_data_all_%d.txt' % (eig_file_name_prefix, idx+1)
+        if use_validation_data == 'y': 
+            eigen_file_name_output = './data/%s_on_data_all_%d_validation.txt' % (eig_file_name_prefix, idx+1)
+        else :
+            eigen_file_name_output = './data/%s_on_data_all_%d.txt' % (eig_file_name_prefix, idx+1)
+
         np.savetxt(eigen_file_name_output, Y_hat_all[:, idx], header='%d' % K, comments="", fmt="%.10f")
         print("%dth eigen function along trajectory is stored to:\n\t%s" % (idx+1, eigen_file_name_output))
 
