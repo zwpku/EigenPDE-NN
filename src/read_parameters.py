@@ -29,11 +29,8 @@ class Param:
         # Prefix of filename for eigenfunctions
         self.eig_file_name_prefix = config['default'].get('eig_file_name_prefix')
 
-        # Index of the eigenvalues to learn
-        self.k = config['default'].getint('eig_idx_k')
-
-        # Whether compute all the first k eigenvalues, compute only the kth eigenvalue
-        self.all_k_eigs = config['default'].getboolean('compute_all_k_eigs')
+        # number of eigenvalues to learn
+        self.k = config['default'].getint('eig_k')
 
         # Weights in the loss function
         self.eig_w = [float(x) for x in config['default'].get('eig_weight').split(',')]

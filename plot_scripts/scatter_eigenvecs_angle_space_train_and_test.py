@@ -8,12 +8,8 @@ from common import *
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
 
-if all_eig_flag :
-    idx_vec = range(1, num_k+1)
-    tot_num_k = num_k
-else :
-    idx_vec = [num_k]
-    tot_num_k = 1
+idx_vec = range(1, num_k+1)
+tot_num_k = num_k
 
 fig, ax = plt.subplots(1, tot_num_k, figsize=(14, 5.5))
 #fig.suptitle('Eigenfunctions by NN, %s' % task_name)
@@ -47,8 +43,6 @@ print ('Reduce data size from %d to %d' % (ndata, sum(mask_of_data)) )
 
 for i in range(len(idx_vec)) : 
   base_name = '../%s/data/%s_on_data' % (working_dir_name, eig_file_name_prefix)
-  if all_eig_flag :
-      base_name = '%s_all' % base_name 
   data_file = open('%s_%d.txt' % (base_name, idx_vec[i]), 'r')
 
   eigenfun_data = np.loadtxt(data_file, skiprows=1) * -1.0
@@ -82,8 +76,6 @@ cbar.ax.tick_params(labelsize=17)
 #cax.tick_params(labelsize=10)
 
 base_name = '../%s/fig/scatter_nn_angle' % (working_dir_name)
-if all_eig_flag :
-    base_name = '%s_all' % base_name 
 
 fig_name = '%s_%d.pdf' % (base_name, num_k)
 

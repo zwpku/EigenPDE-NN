@@ -18,10 +18,7 @@ fig, ax = plt.subplots(1, 1, figsize=(8, 5.5))
 sign_list = [1 for i in range(num_k)]
 sign_list[0] = -1
 
-if all_eig_flag : # print the first
-    eig_index_k = 2
-else :  # print the kth
-    eig_index_k = num_k
+eig_index_k = 2
 
 if with_FVD_solution :
     if conjugated_eigvec_flag == 1:
@@ -37,8 +34,6 @@ if with_FVD_solution :
     dy_fvd = (ymax_fvd - ymin_fvd) / ny_fvd 
 
 base_name = '../%s/data/%s' % (working_dir_name, eig_file_name_prefix)
-if all_eig_flag :
-  base_name = '%s_all' % base_name 
 
 if conjugated_eigvec_flag == 1 :
   data_file = open('%s_%d_conjugated.txt' % (base_name, eig_index_k), 'r')
@@ -101,8 +96,6 @@ plt.title('Eigenfunctions for different %s, %s' % (dir_str, task_name))
 plt.xlabel(xaxis_name[along_x_y_r])
 
 base_name = '../%s/fig/eigvec_nn_and_FVD' % (working_dir_name)
-if all_eig_flag :
-    base_name = '%s_all' % base_name 
 
 if conjugated_eigvec_flag == 1 : 
     fig_name = '%s_%d_along_%s_conjugated.eps' % (base_name, eig_index_k, dir_str) 

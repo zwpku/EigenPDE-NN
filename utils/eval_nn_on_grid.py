@@ -108,50 +108,23 @@ if Param.namd_data_flag == False :
     # Weights 
     weights = exp(- Param.beta * PotClass.V(xvec.numpy())).flatten()
 
-if Param.all_k_eigs : # In this case, output the first k eigenfunctions
-    for idx in range(k):
-        tot_weight = weights.sum()
-        mean_y = (Y_hat_all[:, idx] * weights).sum() / tot_weight
-        var_y = ((Y_hat_all[:, idx] - mean_y)**2 * weights).sum() / tot_weight
-        print ('(mean, var)=', mean_y, var_y)
-        Y_hat = Y_hat_all[:,idx] / (LA.norm(Y_hat_all[:,idx]) * math.sqrt(cell_size))
+for idx in range(k):
+    tot_weight = weights.sum()
+    mean_y = (Y_hat_all[:, idx] * weights).sum() / tot_weight
+    var_y = ((Y_hat_all[:, idx] - mean_y)**2 * weights).sum() / tot_weight
+    print ('(mean, var)=', mean_y, var_y)
+    Y_hat = Y_hat_all[:,idx] / (LA.norm(Y_hat_all[:,idx]) * math.sqrt(cell_size))
 
-        eigen_file_name_output = './data/%s_all_%d.txt' % (eig_file_name_prefix, idx+1)
-        np.savetxt(eigen_file_name_output, np.reshape(Y_hat, new_shape), header=str_header, comments="", fmt="%.10f")
-        print("%dth eigen function is stored to:\n\t%s" % (idx+1, eigen_file_name_output))
-
-        if Param.namd_data_flag == False :
-            # Save the conjugated function
-            Y_hat = Y_hat_all[:,idx] * weights 
-            # print ('%.4e, %.4e' % (min(weights), max(weights)))
-            Y_hat = Y_hat / (LA.norm(Y_hat) * math.sqrt(cell_size))
-
-            eigen_file_name_output = './data/%s_all_%d_conjugated.txt' % (eig_file_name_prefix, idx+1)
-            np.savetxt(eigen_file_name_output, np.reshape(Y_hat, new_shape), header=str_header, comments="", fmt="%.10f")
-            print("\t%s" % (eigen_file_name_output))
-
-else : # Output the kth eigenfunction
-
-    # Read the c vector
-    cvec_file_name = './data/cvec.txt' 
-    cvec=np.loadtxt(cvec_file_name, skiprows=1)
-    print ('Vector c: ', cvec)
-
-    # Linear combination, and normalization
-    Y_hat = Y_hat_all.dot(cvec)
-    Y_hat = Y_hat / (LA.norm(Y_hat) * math.sqrt(cell_size))
-
-    # Save as a 1d or 2d function 
-    eigen_file_name_output = './data/%s_%d.txt' % (eig_file_name_prefix, k)
+    eigen_file_name_output = './data/%s_%d.txt' % (eig_file_name_prefix, idx+1)
     np.savetxt(eigen_file_name_output, np.reshape(Y_hat, new_shape), header=str_header, comments="", fmt="%.10f")
-    print("%dth eigen function is stored to:\n\t%s" % (k, eigen_file_name_output))
+    print("%dth eigen function is stored to:\n\t%s" % (idx+1, eigen_file_name_output))
 
     if Param.namd_data_flag == False :
         # Save the conjugated function
-        Y_hat = Y_hat * weights
+        Y_hat = Y_hat_all[:,idx] * weights 
+        # print ('%.4e, %.4e' % (min(weights), max(weights)))
         Y_hat = Y_hat / (LA.norm(Y_hat) * math.sqrt(cell_size))
-        eigen_file_name_output = './data/%s_%d_conjugated.txt' % (eig_file_name_prefix, k)
 
+        eigen_file_name_output = './data/%s_%d_conjugated.txt' % (eig_file_name_prefix, idx+1)
         np.savetxt(eigen_file_name_output, np.reshape(Y_hat, new_shape), header=str_header, comments="", fmt="%.10f")
         print("\t%s" % (eigen_file_name_output))
-
