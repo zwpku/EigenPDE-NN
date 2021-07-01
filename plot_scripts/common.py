@@ -17,7 +17,10 @@ config = configparser.ConfigParser()
 config.read_file(open('../%s/params.cfg' % working_dir_name))
 
 dim = config['default'].getint('dim')
-data_filename_prefix = config['default'].get('data_filename_prefix')
+
+data_filename_prefix = config['NAMD'].get('data_filename_prefix')
+data_filename_prefix_validation = config['NAMD'].get('data_filename_prefix_validation')
+
 eig_file_name_prefix = config['default'].get('eig_file_name_prefix')
 num_k = config['default'].getint('eig_k')
 
