@@ -97,9 +97,9 @@ class eigen_solver():
         states_filename = './data/%s.txt' % (self.data_filename_prefix)
         fp = open(states_filename, 'r')
 
-        # Only read the first line, in order to find dimension
-        K_total, self.tot_dim = [int (x) for x in fp.readline().split()]
-
+        # Read the second line, in order to find dimension
+        fp.readline()
+        self.tot_dim = len(fp.readline().split()) - 1
         fp.close()
 
         if self.namd_data_flag == True : 
