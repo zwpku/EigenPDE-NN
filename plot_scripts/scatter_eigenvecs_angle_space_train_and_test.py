@@ -21,10 +21,13 @@ def select_indices(angle_data, weights, min_w) :
     for idx in range(ndata) :
         ii = idx1[idx]
         jj = idx2[idx]
-        if counter_of_bins[ii][jj] < max_cout :
-            counter_of_bins[ii][jj] += 1 
-        else :
+        if idx > 100000 :
             mask_of_data[idx] = False
+        else :
+            if counter_of_bins[ii][jj] < max_cout :
+                counter_of_bins[ii][jj] += 1 
+            else :
+                mask_of_data[idx] = False
 
     return mask_of_data 
 
@@ -39,7 +42,7 @@ angle_data_train = np.loadtxt(angle_filename, skiprows=1)
 
 data_filename = '../%s/data/%s.txt' % (working_dir_name, data_filename_prefix)
 weights = np.loadtxt(data_filename, skiprows=1, usecols=-1)
-min_w = 1e-7
+min_w = 1e-9
 
 print ( '%d states, range of weights: [%.3e, %.3e]' % (len(weights), weights.min(), weights.max()) )
 
@@ -69,7 +72,7 @@ angle_data_valid = np.loadtxt(angle_filename, skiprows=1)
 
 data_filename = '../%s/data/%s.txt' % (working_dir_name, data_filename_prefix_validation)
 weights = np.loadtxt(data_filename, skiprows=1, usecols=-1)
-min_w = 1e-7
+min_w = 1e-9
 
 print ( '%d states, range of weights: [%.3e, %.3e]' % (len(weights), weights.min(), weights.max()) )
 

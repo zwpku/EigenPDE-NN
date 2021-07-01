@@ -60,6 +60,8 @@ class Param:
 
         if self.nn_features != None :
             self.write_feature_to_file = config['Training'].getboolean('write_feature_to_file')
+        else: 
+            self.write_feature_to_file = False
 
         # Total gradient steps
         self.train_max_step = config['Training'].getint('train_max_step')
