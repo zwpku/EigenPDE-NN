@@ -7,7 +7,7 @@ import numpy as np
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
 
-fig, ax = plt.subplots(1,4, figsize=(20, 4.5), gridspec_kw={'wspace': 0.10})
+fig, ax = plt.subplots(1,4, figsize=(21, 4.5), gridspec_kw={'wspace': 0.07})
 
 dims = [2, 50, 100]
 cols = [0, 1]
@@ -16,7 +16,7 @@ tot_max = 0.3
 beta = 1.0
 
 working_dir_name = 'working_dir_2d_MetastableRadius'
-working_dir_name = 'working_dir_2d'
+#working_dir_name = 'working_dir_2d'
 
 data_file = open('../%s/data/pot.txt' % (working_dir_name), 'r')
 xmin, xmax, nx = [ float (x) for x in data_file.readline().split() ]
@@ -32,8 +32,8 @@ density = density / (sum(density) * dx * dy)
 im = ax[0].imshow(density, origin = "lower", extent=[xmin,xmax,ymin, ymax], cmap=cm.jet, vmin=tot_min , vmax=tot_max)
 ax[0].set_title(r'$\frac{1}{Z}\exp(-\beta V_2)$', fontsize=30)
 
-tot_min = Z.min()
-tot_max = Z.max() 
+tot_min = 0
+tot_max = 0.3
 
 nx= 200
 ny= 200
@@ -53,7 +53,7 @@ for idx in range(3) :
     h = np.histogram2d(X_vec[:,0], X_vec[:,1], bins=[nx, ny], range=[[xmin,xmax],[ymin,ymax]])[0]
     s = sum(sum(h))
     im = ax[idx+1].imshow(h.T / (s * dx * dy), origin = "lower", extent=[xmin,xmax,ymin, ymax], cmap=cm.jet, vmin=tot_min , vmax=tot_max)
-#ax.set_title('Prob. density of training data, %s' % task_name)
+    #im = ax[idx+1].imshow(density, origin = "lower", extent=[xmin,xmax,ymin, ymax], cmap=cm.jet, vmin=tot_min , vmax=tot_max)
 
 for idx in range(4):
     ax[idx].set_xlabel(r'$x_1$', fontsize=30, labelpad=-4)
@@ -66,11 +66,8 @@ for idx in range(4):
 
 ax[0].set_ylabel(r'$x_2$', fontsize=30, labelpad=-20)
 
-#cax = fig.add_axes([0.08, 0.04, .84, 0.04])
-#fig.colorbar(im, cax=cax, orientation='horizontal',cmap=cm.jet)
-
-cax = fig.add_axes([0.92, 0.13, .04, 0.73])
-fig.colorbar(im, cax=cax, cmap=cm.jet)
+cax = fig.add_axes([0.90, 0.13, .017, 0.75])
+fig.colorbar(im, cax=cax, cmap=cm.jet) #ticks=[0,0.1,0.2, 0.3])
 cax.tick_params(labelsize=28)
 
 fig_file_name = './ex1_hist_states_all.eps' 
