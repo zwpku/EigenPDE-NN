@@ -52,14 +52,15 @@ ax[1].text(4000, 0.24, r'$\lambda_1$', horizontalalignment='right', verticalalig
 ax[1].text(4000, 0.79, r'$\lambda_2$', horizontalalignment='right', verticalalignment='bottom', fontsize=20)
 ax[1].text(4000, 2.79, r'$\lambda_3$', horizontalalignment='right', verticalalignment='bottom', fontsize=20)
 
-ax[2].plot(xvec, np.sqrt(log_info_vec[:,4]), color='k', label='%s' % label_name)
+ax[2].plot(xvec, log_info_vec[:,4], color='k', label='%s' % label_name)
 ax[2].set_title(r'Constraint', fontsize=24)
 ax[2].set_xlabel(r'step',fontsize=26)
 ax[2].tick_params(axis='x', labelsize=20)
 ax[2].tick_params(axis='y', labelsize=20)
 ax[2].set_xticks([0,1000, 3000, 5000])
-ax[2].set_ylim((7e-3, 5))
+ax[2].set_ylim((2e-4, 1))
 ax[2].set_yscale('log')
+ax[2].set_yticks([1e-3, 1e-2, 1e-1])
 
 fig.tight_layout()
 out_fig_name = './ex1_loss_constraints.eps' 
