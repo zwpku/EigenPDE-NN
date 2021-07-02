@@ -85,7 +85,7 @@ ax[0,2].set_title(r'NN, $d=50$', fontsize=24)
 
 working_dir_name = working_dir_list[2]
 eig_file_name_prefix = 'eigen_vector'
-sign_list = [-1, 1, 1]
+sign_list = [1, -1, -1]
 
 for i in range(num_k) : 
   data_file = open('../%s/data/%s_%d.txt' % (working_dir_name, eig_file_name_prefix, i+1), 'r')
