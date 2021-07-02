@@ -12,9 +12,12 @@ sys.path.append('../src/')
 
 import potentials 
 import read_parameters 
+import data_set
 
 Param = read_parameters.Param()
 PotClass = potentials.PotClass(Param.dim, Param.pot_id, Param.stiff_eps)
+
+assert Param.namd_data_flag == False , 'This script is not for NAMD data'
 
 k = Param.k
 
@@ -35,7 +38,9 @@ if dim == 1 :
     new_shape = (nx)
     x_axis = np.linspace(xmin, xmax, nx)
     str_header = '%f %f %d\n' % (xmin,xmax,nx)
-    xvec = torch.tensor(x_axis, dtype=torch.float64).unsqueeze(1)
+    xvec = x_axis.reshape((ncell, 1))
+    weights = np.ones(ncell) 
+    dataset = data_set.MD_data_set(xvec, weights)
 
 if dim == 2 :
     # Grid in R^2
@@ -59,7 +64,10 @@ if dim == 2 :
     x_axis = np.linspace(xmin, xmax, nx)
     y_axis = np.linspace(ymin, ymax, ny)
 
-    xvec = torch.tensor(np.transpose([np.tile(x_axis, len(y_axis)), np.repeat(y_axis, len(x_axis))]), dtype=torch.float64)
+    xvec = np.transpose([np.tile(x_axis, len(y_axis)), np.repeat(y_axis, len(x_axis))])
+
+    weights = np.ones(ncell) 
+    dataset = data_set.MD_data_set(xvec, weights)
 
 if dim > 2 :
     xmin = Param.xmin
@@ -91,9 +99,10 @@ if dim > 2 :
 
     other_x = np.tile(x_other, nx* ny).reshape(nx* ny, dim-2)
 
-    tmp = np.concatenate((x1_vec, x2_vec, other_x), axis=1)
+    xvec = np.concatenate((x1_vec, x2_vec, other_x), axis=1)
 
-    xvec = torch.tensor(tmp,  dtype=torch.float64)
+    weights = np.ones(ncell) 
+    dataset = data_set.MD_data_set(xvec, weights)
 
 # Load trained neural network
 file_name = './data/%s.pt' % (eig_file_name_prefix)
@@ -101,12 +110,11 @@ model = torch.load(file_name)
 model.eval()
 print ("Neural network loaded\n")
 
+dataset.generate_minbatch(dataset.K, False)
 # Evaluate neural network functions at states
-Y_hat_all = model(xvec).detach().numpy()
+Y_hat_all = model(dataset).detach().numpy()
 
-if Param.namd_data_flag == False :
-    # Weights 
-    weights = exp(- Param.beta * PotClass.V(xvec.numpy())).flatten()
+weights = exp(- Param.beta * PotClass.V(xvec)).flatten()
 
 for idx in range(k):
     tot_weight = weights.sum()
@@ -119,12 +127,11 @@ for idx in range(k):
     np.savetxt(eigen_file_name_output, np.reshape(Y_hat, new_shape), header=str_header, comments="", fmt="%.10f")
     print("%dth eigen function is stored to:\n\t%s" % (idx+1, eigen_file_name_output))
 
-    if Param.namd_data_flag == False :
-        # Save the conjugated function
-        Y_hat = Y_hat_all[:,idx] * weights 
-        # print ('%.4e, %.4e' % (min(weights), max(weights)))
-        Y_hat = Y_hat / (LA.norm(Y_hat) * math.sqrt(cell_size))
+    # Save the conjugated function
+    Y_hat = Y_hat_all[:,idx] * weights 
+    # print ('%.4e, %.4e' % (min(weights), max(weights)))
+    Y_hat = Y_hat / (LA.norm(Y_hat) * math.sqrt(cell_size))
 
-        eigen_file_name_output = './data/%s_%d_conjugated.txt' % (eig_file_name_prefix, idx+1)
-        np.savetxt(eigen_file_name_output, np.reshape(Y_hat, new_shape), header=str_header, comments="", fmt="%.10f")
-        print("\t%s" % (eigen_file_name_output))
+    eigen_file_name_output = './data/%s_%d_conjugated.txt' % (eig_file_name_prefix, idx+1)
+    np.savetxt(eigen_file_name_output, np.reshape(Y_hat, new_shape), header=str_header, comments="", fmt="%.10f")
+    print("\t%s" % (eigen_file_name_output))
