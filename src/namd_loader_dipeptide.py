@@ -76,8 +76,8 @@ class namd_data_loader() :
             weight_counter[idx, idy] += self.weights[i]
 
         plt.clf()
-        plt.rc('text', usetex=True)
-        plt.rc('font', family='serif')
+        #plt.rc('text', usetex=True)
+#        plt.rc('font', family='serif')
 
         fig, ax = plt.subplots(1,1)
         # Show the angle counting data in 2d plot

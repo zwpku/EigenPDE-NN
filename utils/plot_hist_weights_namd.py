@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
 
-import sys
-
-# Load directories containing source codes
-sys.path.append('../src/')
-
 import read_parameters 
 import namd_loader_dipeptide
 

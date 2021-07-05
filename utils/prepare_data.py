@@ -4,9 +4,6 @@
 
 import sys
 
-# Load directories containing source codes
-sys.path.append('../src/')
-
 import read_parameters 
 from data_generator import PrepareData
 
