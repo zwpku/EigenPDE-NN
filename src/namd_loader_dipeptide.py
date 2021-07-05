@@ -289,7 +289,6 @@ class namd_data_loader() :
         # Change the 3d vector to 2d vector
         self.traj_data = np.array([self.selected_atoms.positions for ts in u.trajectory[::self.load_data_how_often]]).reshape((-1, self.atom_num * 3))
 
-        self.total_weights_sub_regions()
 
     def cut_states_with_small_weights(self) :
 
@@ -322,6 +321,7 @@ class namd_data_loader() :
         self.load_namd_traj()
         self.load_angles_from_colvar_traj() 
         self.compute_weights() 
+        self.total_weights_sub_regions()
 
         if self.load_dcd_file == True :
             # Actual length of loaded data 

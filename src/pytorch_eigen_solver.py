@@ -391,7 +391,7 @@ class eigen_solver():
         loss.backward()
         self.optimizer.step()
 
-        return eig_vals.numpy(), cvec.numpy(), loss, non_penalty_loss, penalty
+        return eig_vals.numpy(), cvec.numpy(), loss.detach().numpy(), non_penalty_loss.detach().numpy(), penalty.detach().numpy()
 
     def train(self):
 
