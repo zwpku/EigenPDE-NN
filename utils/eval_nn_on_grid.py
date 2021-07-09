@@ -7,9 +7,6 @@ from numpy import exp
 from math import pi
 import torch
 
-import sys
-sys.path.append('../src/')
-
 import potentials 
 import read_parameters 
 import data_set

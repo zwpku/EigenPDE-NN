@@ -48,10 +48,10 @@ use_indices = select_indices(angle_data_train, weights, min_w)
 print ('Training data size reduced to %d' % (len(angle_data_train[use_indices,0])) )
 
 sig_vec = [1.0, 1.0]
-vmins=[-8.3, -2.5]
-vmaxs=[0.13, 1.1]
+vmins=[-0.13, -1.2]
+vmaxs=[8.3, 2.5]
 
-eig_idx = 1
+eig_idx = 0
 
 data_filename = '../%s/data/%s_on_data_%d.txt' % (working_dir_name, eig_file_name_prefix, eig_idx+1)
 data_file = open(data_filename, 'r')
@@ -93,9 +93,9 @@ cax = fig.add_axes([0.92, 0.10, .02, 0.80])
 cbar = fig.colorbar(sc, cax=cax)
 cbar.ax.tick_params(labelsize=20)
 if eig_idx == 0 :
-  cbar.set_ticks([-8.0, -6.0, -4.0, -2.0, 0])
+  cbar.set_ticks([0, 2.0, 4.0, 6.0, 8.0])
 else :
-  cbar.set_ticks([-2.0, -1.0, 0, 1.0])
+  cbar.set_ticks([-1.0, 0, 1.0, 2.0])
 
 for i in range(2) : 
   ax[i].tick_params(axis='x', labelsize=18, pad=1.5)

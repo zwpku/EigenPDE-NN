@@ -289,7 +289,6 @@ class namd_data_loader() :
         # Change the 3d vector to 2d vector
         self.traj_data = np.array([self.selected_atoms.positions for ts in u.trajectory[::self.load_data_how_often]]).reshape((-1, self.atom_num * 3))
 
-        self.total_weights_sub_regions()
 
     def cut_states_with_small_weights(self) :
 
@@ -322,6 +321,7 @@ class namd_data_loader() :
         self.load_namd_traj()
         self.load_angles_from_colvar_traj() 
         self.compute_weights() 
+        self.total_weights_sub_regions()
 
         if self.load_dcd_file == True :
             # Actual length of loaded data 
@@ -341,26 +341,17 @@ class namd_data_loader() :
     # Load sampled MD data from file, and save it to txt file
     def save_namd_data_to_txt(self):
 
-        if self.training_data == False :
-            states_file_name = './data/%s.txt' % (self.data_filename_prefix)
-            if os.path.isfile(states_file_name) :
-                print ('[Info] found test data in: %s\n' % states_file_name)
-            else :
-                print ('Warning: data for validation does not exist: %s!\n' % states_file_name)
-
-            angle_output_file = './data/angle_along_traj_validation.txt' 
-            self.load_angles_from_colvar_traj() 
-            print ( '[Info] Angles along trajectory are saved to file: %s\n' % angle_output_file)
-            np.savetxt(angle_output_file, self.angles, header='%d' % (self.angles.shape[0]), comments="", fmt="%.10f")
-            return 
-
         # filename of trajectory data 
         states_file_name = './data/%s.txt' % (self.data_filename_prefix)
-        angle_output_file = './data/angle_along_traj.txt' 
 
         if os.path.isfile(states_file_name) :
             print ('Dcd file will not be loaded since data file already exists: %s!\n' % states_file_name)
             self.load_dcd_file = False 
+
+        if self.training_data == True :
+            angle_output_file = './data/angle_along_traj.txt' 
+        else :
+            angle_output_file = './data/angle_along_traj_validation.txt' 
 
         self.load_all() 
 
@@ -375,9 +366,9 @@ class namd_data_loader() :
 
             print("[Info] Sampled data are stored to: %s" % states_file_name)
 
-        # Save indices of atoms to txt file
-        atom_ids_file = './data/atom_ids.txt' 
-        np.savetxt(atom_ids_file, self.selected_atoms.ix_array, header='%d' % self.atom_num, comments="", fmt="%d")
+        if self.training_data == True :
+            # Save indices of atoms to txt file
+            atom_ids_file = './data/atom_ids.txt' 
+            np.savetxt(atom_ids_file, self.selected_atoms.ix_array, header='%d' % self.atom_num, comments="", fmt="%d")
 
-        print("[Info] Atom indices are stored to: %s" % atom_ids_file)
-
+            print("[Info] Atom indices are stored to: %s" % atom_ids_file)

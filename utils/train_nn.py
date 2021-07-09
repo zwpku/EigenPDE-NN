@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
 
-import sys
-# Load directories containing source codes
-sys.path.append('../src/')
-
 import read_parameters 
 import time
 import pytorch_eigen_solver
