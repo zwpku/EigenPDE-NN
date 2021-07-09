@@ -27,7 +27,7 @@ fig, ax = plt.subplots(1, 2, figsize=(16, 6.5), gridspec_kw={'wspace': 0.28})
 
 theta = np.linspace(-math.pi, math.pi, 200)
 ax[0].plot(theta, v_2d_3well_theta(theta), linewidth=3)
-ax[0].set_title(r'$V_0$', fontsize=28)
+ax[0].set_title(r'$V$', fontsize=28)
 ax[0].set_xlabel(r'$\theta$', fontsize=25, labelpad=-1)
 ax[0].tick_params(axis='y', labelsize=25)
 ax[0].tick_params(axis='x', labelsize=25)

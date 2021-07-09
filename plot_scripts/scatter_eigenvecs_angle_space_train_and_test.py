@@ -21,13 +21,10 @@ def select_indices(angle_data, weights, min_w) :
     for idx in range(ndata) :
         ii = idx1[idx]
         jj = idx2[idx]
-        if idx > 100000 :
-            mask_of_data[idx] = False
+        if counter_of_bins[ii][jj] < max_cout :
+            counter_of_bins[ii][jj] += 1 
         else :
-            if counter_of_bins[ii][jj] < max_cout :
-                counter_of_bins[ii][jj] += 1 
-            else :
-                mask_of_data[idx] = False
+            mask_of_data[idx] = False
 
     return mask_of_data 
 
