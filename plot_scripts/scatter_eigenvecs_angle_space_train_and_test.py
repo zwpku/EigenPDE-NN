@@ -51,7 +51,7 @@ sig_vec = [1.0, 1.0]
 vmins=[-0.13, -1.2]
 vmaxs=[8.3, 2.5]
 
-eig_idx = 0
+eig_idx = 1
 
 data_filename = '../%s/data/%s_on_data_%d.txt' % (working_dir_name, eig_file_name_prefix, eig_idx+1)
 data_file = open(data_filename, 'r')
@@ -100,10 +100,10 @@ else :
 for i in range(2) : 
   ax[i].tick_params(axis='x', labelsize=18, pad=1.5)
   ax[i].tick_params(axis='y', labelsize=20, pad=0.0)
-  ax[i].set_xlabel(r'$\varphi$', fontsize=25, labelpad=-1, rotation=0)
+  ax[i].set_xlabel(r'$\phi_1$', fontsize=25, labelpad=3, rotation=0)
   ax[i].set_xticks([-150, -100, -50, 0, 50, 100, 150])
   ax[i].set_yticks([-150, -100, -50, 0, 50, 100, 150])
-  ax[i].set_ylabel(r'$\psi$', fontsize=25, labelpad=-10, rotation=0)
+  ax[i].set_ylabel(r'$\phi_2$', fontsize=25, labelpad=-10, rotation=0)
 
 base_name = '../%s/fig/scatter_nn_angle' % (working_dir_name)
 
