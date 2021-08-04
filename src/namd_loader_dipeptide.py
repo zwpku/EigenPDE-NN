@@ -110,8 +110,8 @@ class namd_data_loader() :
         # Plot may not be smooth at states where counter is zero
         #h = ax.imshow(weight_counter.T, extent=[-180,180, -180, 180], cmap='jet', origin='lower', norm=mpl.colors.LogNorm(), vmin=5e-8)
         h = ax.imshow(weights_on_angle_mesh.T, extent=[-180,180, -180, 180], cmap='jet', origin='lower', norm=mpl.colors.LogNorm(), vmin=5e-8)
-        ax.set_xlabel(r'$\varphi$', fontsize=27, labelpad=-1, rotation=0)
-        ax.set_ylabel(r'$\psi$', fontsize=27, labelpad=-5, rotation=0)
+        ax.set_xlabel(r'$\phi_1$', fontsize=27, labelpad=3, rotation=0)
+        ax.set_ylabel(r'$\phi_2$', fontsize=27, labelpad=-5, rotation=0)
         ax.tick_params(axis='x', labelsize=15)
         ax.tick_params(axis='y', labelsize=15)
         ax.set_xticks([-150, -100, -50, 0, 50, 100, 150])
