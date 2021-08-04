@@ -188,6 +188,8 @@ class eigen_solver():
 
         self.dataset.generate_minbatch(batch_size) 
 
+        self.dataset.align()
+
         # Evaluate function value on data
         self.y = self.model(self.dataset)
 

@@ -163,6 +163,21 @@ class MD_data_set(data_set) :
         self = super(MD_data_set, cls).from_file(states_filename) 
         return self
 
+    def align(self) :
+        ref = self.X_vec[0,:].detach().reshape((self.num_atoms, self.dim))
+        x = self.x_batch.reshape((-1, self.num_atoms, self.dim)).permute((0,2,1)).reshape((-1,self.num_atoms))
+        prod = torch.matmul(x, ref).reshape((-1, self.dim, self.dim))
+        u, s, vh = torch.linalg.svd(prod)
+
+        diag_mat = torch.diag(torch.ones(3)).double().unsqueeze(0).repeat(self.batch_size, 1, 1)
+
+        ut= u.permute((0,2,1))
+        v = vh.permute((0,2,1))
+        sign_vec = torch.sign(torch.linalg.det(torch.matmul(v, ut)))
+        diag_mat[:,2,2] = sign_vec
+
+        rotate_mat = torch.bmm(torch.bmm(v, diag_mat), ut)
+        
     # Features of data in mini-batch
     def map_to_feature(self, idx):
         x = self.x_batch.reshape((-1, self.num_atoms, self.dim))
