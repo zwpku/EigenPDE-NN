@@ -225,6 +225,8 @@ class namd_data_loader() :
         psf_filename = '%s/%s.psf' % (self.namd_data_path, self.psf_name)
         pdb_filename = '%s/%s.pdb' % (self.namd_data_path, self.psf_name)
         traj_filename = '%s/%s.dcd' % (self.namd_data_path, self.namd_data_filename_prefix)
+
+
         u = mda.Universe(psf_filename, traj_filename)
 
         # Length of trajectory 
@@ -259,14 +261,20 @@ class namd_data_loader() :
             angle_col_index = [0, 1, 2, 3, 4]
 
         self.selected_atoms = u.select_atoms(select_argument)
+        self.index_of_angle_atoms = angle_col_index
         # Number of selected atoms
         self.atom_num = len(self.selected_atoms.names)
 
         K = len(u.trajectory[::self.load_data_how_often])
 
-        print ( '\n[Info] How_often=%d...\n\tNames of %d selected atoms:\n\t %s\n\tNames of angle-related atoms:\n\t %s\n' % (self.load_data_how_often, self.atom_num, self.selected_atoms.names, self.selected_atoms.names[angle_col_index]) )
+        print ( '\n[Info] How_often=%d...\n\tNames of %d selected atoms:\n\t %s\n\tNames of angle-related atoms:\n\t %s\n' % (self.load_data_how_often, self.atom_num, self.selected_atoms.names, self.selected_atoms.names[self.index_of_angle_atoms]) )
 
         print ( '[Info] Length of loaded trajectory: %d\n\tdt=%.2fps, total time = %.2fns' % (K, u.coord.dt * self.load_data_how_often, total_time_traj) )
+
+        ref_state_tmp = mda.Universe(pdb_filename).select_atoms("bynum 1 3 13 15 17").positions
+        ref_state_c = np.mean(ref_state_tmp, 0)
+        # shift such that it is zero-centered 
+        self.ref_state = ref_state_tmp - ref_state_c
 
         if self.load_dcd_file == False :
             return 
@@ -370,5 +378,15 @@ class namd_data_loader() :
             # Save indices of atoms to txt file
             atom_ids_file = './data/atom_ids.txt' 
             np.savetxt(atom_ids_file, self.selected_atoms.ix_array, header='%d' % self.atom_num, comments="", fmt="%d")
-
             print("[Info] Atom indices are stored to: %s" % atom_ids_file)
+
+            # Save reference state to txt file
+            ref_state_filename = './data/ref_state.txt'
+            ref_state_file = open(ref_state_filename, 'w')
+            ref_state_file.write('%d\n' % len(self.index_of_angle_atoms)) 
+            ref_state_file.write(' '.join(str(item) for item in self.index_of_angle_atoms)+'\n')
+            for vec in self.ref_state :
+                ref_state_file.write(' '.join('%.6f' % (item) for item in vec)+'\n')
+            ref_state_file.close()
+            print("[Info] reference state is stored to: %s" % ref_state_filename)
+

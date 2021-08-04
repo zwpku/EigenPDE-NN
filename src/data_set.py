@@ -125,28 +125,9 @@ class data_set():
         # This is needed in order to compute spatial gradients
         self.x_batch.requires_grad = True
 
-    def map_to_feature(self, idx):
-        pass
+    def pre_processing_layer(self) :
+        return self.x_batch
 
-    # This function should be called by subclass, where map_to_feature is defined.
-    def map_to_all_features(self):
-        if self.num_features > 0 :
-            for i in range(self.num_features) :
-                if i == 0 :
-                    xf = self.map_to_feature(i) 
-                else :
-                    # Each column corresponds to one feature 
-                    xf = torch.cat((xf, self.map_to_feature(i)), dim=1)
-            return xf
-        else :
-            return self.x_batch
-
-    def write_all_features_file(self, feature_filename) :
-        # Use all data
-        self.generate_minbatch(self.K, False)
-        # Append weights to last column (after features) 
-        xf_w = torch.cat((self.map_to_all_features(), self.weights.reshape((-1,1))), dim=1).detach().numpy() 
-        np.savetxt(feature_filename, xf_w, header='%d %d' % (self.K, self.f_dim + 1), comments="", fmt="%.10f")
 
 # Data of molecular system
 class MD_data_set(data_set) :
@@ -163,21 +144,38 @@ class MD_data_set(data_set) :
         self = super(MD_data_set, cls).from_file(states_filename) 
         return self
 
+    def load_ref_state(self) :
+        ref_state_filename = './data/ref_state.txt' 
+        ref_state_file= open(ref_state_filename)
+        contents = ref_state_file.readlines()
+        self.ref_num_atoms = int(contents[0].rstrip())
+        self.ref_index = [int(x) for x in contents[1].rstrip().split()]
+        ref_tmp = np.loadtxt(ref_state_filename, skiprows=2)
+        self.ref_x = torch.from_numpy(ref_tmp).double().reshape((self.ref_num_atoms, self.dim))
+        return self
+
     def align(self) :
-        ref = self.X_vec[0,:].detach().reshape((self.num_atoms, self.dim))
-        x = self.x_batch.reshape((-1, self.num_atoms, self.dim)).permute((0,2,1)).reshape((-1,self.num_atoms))
-        prod = torch.matmul(x, ref).reshape((-1, self.dim, self.dim))
+        x = self.x_batch.reshape((-1, self.num_atoms, self.dim))
+        x_angle_atoms = x[:,self.ref_index, :]
+
+        # center
+        x_c = torch.mean(x_angle_atoms, 1, True)
+        # translation
+        x_notran = x_angle_atoms - x_c 
+
+        xtmp = x_notran.permute((0,2,1)).reshape((-1,self.ref_num_atoms))
+        prod = torch.matmul(xtmp, self.ref_x).reshape((-1, self.dim, self.dim))
         u, s, vh = torch.linalg.svd(prod)
 
         diag_mat = torch.diag(torch.ones(3)).double().unsqueeze(0).repeat(self.batch_size, 1, 1)
 
-        ut= u.permute((0,2,1))
-        v = vh.permute((0,2,1))
-        sign_vec = torch.sign(torch.linalg.det(torch.matmul(v, ut)))
+        sign_vec = torch.sign(torch.linalg.det(torch.matmul(u, vh))).detach()
         diag_mat[:,2,2] = sign_vec
 
-        rotate_mat = torch.bmm(torch.bmm(v, diag_mat), ut)
-        
+        rotate_mat = torch.bmm(torch.bmm(u, diag_mat), vh)
+
+        return torch.matmul(x-x_c, rotate_mat).reshape((-1, self.tot_dim) )
+
     # Features of data in mini-batch
     def map_to_feature(self, idx):
         x = self.x_batch.reshape((-1, self.num_atoms, self.dim))
@@ -205,4 +203,26 @@ class MD_data_set(data_set) :
         if f_name == 'bond': 
             r12 = x[:, ag[1], :] - x[:, ag[0], :]
             return torch.norm(r12, dim=1, keepdim=True)
+
+    def map_to_all_features(self):
+        for i in range(self.num_features) :
+            if i == 0 :
+                xf = self.map_to_feature(i) 
+            else :
+                # Each column corresponds to one feature 
+                xf = torch.cat((xf, self.map_to_feature(i)), dim=1)
+        return xf
+
+    def write_all_features_file(self, feature_filename) :
+        # Use all data
+        self.generate_minbatch(self.K, False)
+        # Append weights to last column (after features) 
+        xf_w = torch.cat((self.map_to_all_features(), self.weights.reshape((-1,1))), dim=1).detach().numpy() 
+        np.savetxt(feature_filename, xf_w, header='%d %d' % (self.K, self.f_dim + 1), comments="", fmt="%.10f")
+
+    def pre_processing_layer(self) :
+        if self.num_features > 0 :
+            return self.map_to_all_features() 
+        else :
+            return self.align()
 

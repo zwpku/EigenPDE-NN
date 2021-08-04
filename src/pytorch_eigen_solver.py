@@ -188,8 +188,6 @@ class eigen_solver():
 
         self.dataset.generate_minbatch(batch_size) 
 
-        self.dataset.align()
-
         # Evaluate function value on data
         self.y = self.model(self.dataset)
 
@@ -534,6 +532,9 @@ class eigen_solver():
             # Include the feature layer and the output layers of neural network
             self.arch_list = [self.dataset.dim_of_features()] + self.arch_list + [1]
         else :
+            if self.namd_data_flag == True :
+                self.dataset.load_ref_state() 
+
             # Include the input/output layers of neural network
             self.arch_list = [self.dataset.tot_dim] + self.arch_list + [1]
 

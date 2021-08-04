@@ -37,8 +37,7 @@ class MySequential(torch.nn.Module):
 
     # x should be an instance of the class data_set 
     def forward(self, x):
-        xf = x.map_to_all_features()
-        x.align()
+        xf = x.pre_processing_layer() 
         return self.feature_forward(xf) 
 
 # Network whose ith output gives the ith eigenfunction
