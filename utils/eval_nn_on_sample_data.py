@@ -51,6 +51,7 @@ model.eval()
 print ("Neural network loaded\n")
 
 dataset.generate_minbatch(dataset.K, False)
+dataset.load_ref_state() 
 
 # Evaluate neural network functions at states
 Y_hat_all = model(dataset).detach().numpy()
