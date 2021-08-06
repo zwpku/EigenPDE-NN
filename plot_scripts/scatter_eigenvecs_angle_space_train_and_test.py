@@ -47,22 +47,22 @@ use_indices = select_indices(angle_data_train, weights, min_w)
 
 print ('Training data size reduced to %d' % (len(angle_data_train[use_indices,0])) )
 
-sig_vec = [1.0, 1.0]
-vmins=[-0.13, -1.2]
-vmaxs=[8.3, 2.5]
+sig_vec = [-1.0, -1.0]
+vmins=[-0.13, -1.03]
+vmaxs=[8.4, 1.8]
 
-eig_idx = 1
+eig_idx = 2
 
-data_filename = '../%s/data/%s_on_data_%d.txt' % (working_dir_name, eig_file_name_prefix, eig_idx+1)
+data_filename = '../%s/data/%s_on_data_%d.txt' % (working_dir_name, eig_file_name_prefix, eig_idx)
 data_file = open(data_filename, 'r')
 
-eigenfun_data = np.loadtxt(data_file, skiprows=1) * sig_vec[eig_idx]
-print ('eigenfun %d (train):, (min,max)=(%.4f, %.4f)' % (eig_idx+1, min(eigenfun_data), max(eigenfun_data)) ) 
+eigenfun_data = np.loadtxt(data_file, skiprows=1) * sig_vec[eig_idx-1]
+print ('eigenfun %d (train):, (min,max)=(%.4f, %.4f)' % (eig_idx, min(eigenfun_data), max(eigenfun_data)) ) 
 
 nn_ax = ax[0]
-sc = nn_ax.scatter(angle_data_train[use_indices,0], angle_data_train[use_indices,1], s=2.0, c=eigenfun_data[use_indices], vmin=vmins[eig_idx], vmax=vmaxs[eig_idx], cmap='jet')
+sc = nn_ax.scatter(angle_data_train[use_indices,0], angle_data_train[use_indices,1], s=2.0, c=eigenfun_data[use_indices], vmin=vmins[eig_idx-1], vmax=vmaxs[eig_idx-1], cmap='jet')
 
-nn_ax.set_title('%dth eigenfunction, train' % (eig_idx+1) , fontsize=27)
+nn_ax.set_title('%dth eigenfunction, train' % (eig_idx) , fontsize=27)
 
 angle_filename = '../%s/data/angle_along_traj_validation.txt' % working_dir_name
 angle_data_valid = np.loadtxt(angle_filename, skiprows=1)
@@ -77,25 +77,26 @@ use_indices = select_indices(angle_data_valid, weights, min_w)
 
 print ('Test data size reduced to %d' % (len(angle_data_valid[use_indices,0])) )
 
-sig_vec = [1.0, 1.0]
-data_filename = '../%s/data/%s_on_data_%d_validation.txt' % (working_dir_name, eig_file_name_prefix, eig_idx+1)
+sig_vec = [-1.0, -1.0]
+data_filename = '../%s/data/%s_on_data_%d_validation.txt' % (working_dir_name, eig_file_name_prefix, eig_idx)
 data_file = open(data_filename, 'r')
 
-eigenfun_data = np.loadtxt(data_file, skiprows=1) * sig_vec[eig_idx]
-print ('eigenfun %d (test):, (min,max)=(%.4f, %.4f)' % (eig_idx+1, min(eigenfun_data), max(eigenfun_data)) ) 
+eigenfun_data = np.loadtxt(data_file, skiprows=1) * sig_vec[eig_idx-1] 
+
+print ('eigenfun %d (test):, (min,max)=(%.4f, %.4f)' % (eig_idx, min(eigenfun_data), max(eigenfun_data)) ) 
 
 nn_ax = ax[1]
-sc = nn_ax.scatter(angle_data_valid[use_indices,0], angle_data_valid[use_indices,1], s=2.0, c=eigenfun_data[use_indices],vmin=vmins[eig_idx], vmax=vmaxs[eig_idx], cmap='jet')
+sc = nn_ax.scatter(angle_data_valid[use_indices,0], angle_data_valid[use_indices,1], s=2.0, c=eigenfun_data[use_indices],vmin=vmins[eig_idx-1], vmax=vmaxs[eig_idx-1], cmap='jet')
 
-nn_ax.set_title('%dth eigenfunction, test' % (eig_idx+1) , fontsize=27)
+nn_ax.set_title('%dth eigenfunction, test' % (eig_idx) , fontsize=27)
 
 cax = fig.add_axes([0.92, 0.10, .02, 0.80])
 cbar = fig.colorbar(sc, cax=cax)
 cbar.ax.tick_params(labelsize=20)
-if eig_idx == 0 :
+if eig_idx == 1 :
   cbar.set_ticks([0, 2.0, 4.0, 6.0, 8.0])
 else :
-  cbar.set_ticks([-1.0, 0, 1.0, 2.0])
+  cbar.set_ticks([-1.0, -0.5, 0, 0.5, 1.0, 1.5])
 
 for i in range(2) : 
   ax[i].tick_params(axis='x', labelsize=18, pad=1.5)
