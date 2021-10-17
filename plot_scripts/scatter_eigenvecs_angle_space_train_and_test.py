@@ -52,6 +52,7 @@ vmins=[-0.13, -1.2]
 vmaxs=[8.3, 2.5]
 
 eig_idx = 1
+title_names = ['1st', '2nd']
 
 data_filename = '../%s/data/%s_on_data_%d.txt' % (working_dir_name, eig_file_name_prefix, eig_idx+1)
 data_file = open(data_filename, 'r')
@@ -62,7 +63,7 @@ print ('eigenfun %d (train):, (min,max)=(%.4f, %.4f)' % (eig_idx+1, min(eigenfun
 nn_ax = ax[0]
 sc = nn_ax.scatter(angle_data_train[use_indices,0], angle_data_train[use_indices,1], s=2.0, c=eigenfun_data[use_indices], vmin=vmins[eig_idx], vmax=vmaxs[eig_idx], cmap='jet')
 
-nn_ax.set_title('%dth eigenfunction, train' % (eig_idx+1) , fontsize=27)
+nn_ax.set_title('%s eigenfunction on train data' % (title_names[eig_idx]) , fontsize=27)
 
 angle_filename = '../%s/data/angle_along_traj_validation.txt' % working_dir_name
 angle_data_valid = np.loadtxt(angle_filename, skiprows=1)
@@ -87,7 +88,7 @@ print ('eigenfun %d (test):, (min,max)=(%.4f, %.4f)' % (eig_idx+1, min(eigenfun_
 nn_ax = ax[1]
 sc = nn_ax.scatter(angle_data_valid[use_indices,0], angle_data_valid[use_indices,1], s=2.0, c=eigenfun_data[use_indices],vmin=vmins[eig_idx], vmax=vmaxs[eig_idx], cmap='jet')
 
-nn_ax.set_title('%dth eigenfunction, test' % (eig_idx+1) , fontsize=27)
+nn_ax.set_title('%s eigenfunction on test data' % (title_names[eig_idx]) , fontsize=27)
 
 cax = fig.add_axes([0.92, 0.10, .02, 0.80])
 cbar = fig.colorbar(sc, cax=cax)
