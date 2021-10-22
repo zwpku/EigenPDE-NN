@@ -10,6 +10,9 @@ Welcome to EigenPDE-NN's documentation!
 
 Check out the :doc:`usage` section for further information, including how to :ref:`install <installation>` the project.
 
+.. note::
+   This project is still under active development.
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
