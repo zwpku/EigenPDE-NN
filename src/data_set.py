@@ -129,8 +129,8 @@ class data_set():
         return self.x_batch
 
 
-# Data of molecular system
 class MD_data_set(data_set) :
+    # Data of molecular system
 
     def __init__(self, xvec, weights) :
         super(MD_data_set, self).__init__(xvec, weights)
