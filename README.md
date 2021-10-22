@@ -1,6 +1,8 @@
 # EigenPDE-solver-NN
 An Eigenvalue PDE Solver by Neural Networks
 
+See the document here: https://eigenpde-nn.readthedocs.io/en/latest
+
 ## Preparation
 #### 1. Dependances (optional)
 
