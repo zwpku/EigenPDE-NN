@@ -156,12 +156,12 @@ class eigen_solver():
     # 3) Normalize 
     def update_mean_and_var_of_model(self, model):
 
-        self.dataset.generate_minbatch(self.dataset.K, False) 
+        self.dataset.generate_minibatch(self.dataset.K, False) 
 
         # Evaluate function value on full data
         y = model(self.dataset).detach()
 
-        weights= self.dataset.weights_minbatch()
+        weights= self.dataset.weights_minibatch()
 
         # Total weights, will be used for normalization 
         tot_weights = weights.sum()
@@ -186,7 +186,7 @@ class eigen_solver():
     """
     def fun_and_grad_on_data(self, batch_size):
 
-        self.dataset.generate_minbatch(batch_size) 
+        self.dataset.generate_minibatch(batch_size) 
 
         # Evaluate function value on data
         self.y = self.model(self.dataset)
@@ -198,7 +198,7 @@ class eigen_solver():
         """
         self.y_grad_vec = [torch.autograd.grad(self.y[:,idx], self.dataset.x_batch, self.v_in_jac, create_graph=True)[0] for idx in range(self.k)]
 
-        self.b_weights= self.dataset.weights_minbatch()
+        self.b_weights= self.dataset.weights_minibatch()
 
         # Total weights, will be used for normalization 
         self.b_tot_weights = self.b_weights.sum()

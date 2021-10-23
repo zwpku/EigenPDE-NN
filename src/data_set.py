@@ -3,6 +3,16 @@ import numpy as np
 import random
 
 class feature_tuple():
+    """
+    Class containing features.
+
+    :param features: user-defined features. 
+    :type features: string
+
+    Currently supported types of features: 
+      dihedral angle, angle, bond.
+
+    """
     def __init__(self, features):
         if features == None :
             self.num_features = 0
@@ -27,6 +37,10 @@ class feature_tuple():
             self.f_tuples = tuple(self.f_tuples)
 
     def show_features(self) :
+        """
+        Display information of features.
+        """
+
         print ('[Info]  No. of features: ', self.num_features)
 
         if self.num_features > 0 :
@@ -36,6 +50,9 @@ class feature_tuple():
               print ('\t%dth feature: ' % (i+1), self.f_tuples[i]) 
 
     def convert_atom_ix_by_file(self, ids_filename) :
+        """
+        Convert indices in features according to the index file.
+        """
 
         if self.num_features == 0 :
             return 
@@ -58,6 +75,24 @@ class feature_tuple():
             print ('\t%dth feature:' % (f_id+1), self.f_tuples[f_id])
 
 class data_set():
+    """
+    The class for data set. 
+
+    :param xvec: array containing trajectory data 
+    :type xvec: 2d numpy array
+
+    :param weights: weights of trajectory data
+    :type weights: 1d numpy array
+
+    :ivar batch_size: current batch-size 
+    :ivar K: number of data 
+    :ivar active_index: indices of active states. 
+        A state is included in mini-batch, if the entry is 1. 
+    :ivar features: the tuple of features (the state is first transformed to
+        features, before it is passed to neural networks).
+    :ivar num_features: number of features 
+    :ivar batch_uniform_weight: when True (default), the data is included in mini-batch with equal probability.
+    """
     def __init__(self, xvec, weights) :
         self.X_vec = torch.from_numpy(xvec).double()
         self.weights = torch.from_numpy(weights).double()
@@ -79,6 +114,10 @@ class data_set():
 
     @classmethod 
     def from_file(cls, states_filename) :
+        """
+        Initialize the data_set from a data file.
+
+        """
         # Reads states from file 
         state_weight_vec = np.loadtxt(states_filename, skiprows=1)
 
@@ -87,16 +126,31 @@ class data_set():
         return cls(state_weight_vec[:,:-1], state_weight_vec[:,-1])
 
     def set_nonuniform_batch_weight(self) :
+        """
+        By default, :py:data:`batch_uniform_weight` is True and indices for mini-batch are selected with equal
+        probability, unless this function is called, which set
+        :py:data:`batch_uniform_weight` to False, and indices for mini-batch will
+        be selected randomly according to their weights. 
+        """
         self.batch_uniform_weight = False
         self.cum_weights = np.cumsum(self.weights).numpy()
 
-    def weights_minbatch(self) :
+    def weights_minibatch(self) :
+        """
+        Return the array containing the weights of states in mini-batch. 
+        The array will be constant 1 if :py:data:`batch_uniform_weight` is False.
+        """
         if self.batch_uniform_weight == True : 
             return self.weights[self.active_indices]
         else :
             return torch.ones(self.batch_size, dtype=torch.float64)
 
     def set_features(self, features) :
+        """
+        Set the features of the data set.
+        :param features: list of features.
+        :type features: 
+        """
         # List of features
         self.features = features
         # Number of features used
@@ -104,11 +158,23 @@ class data_set():
         self.f_dim = self.features.f_dim
 
     def dim_of_features(self) :
+        """
+        Number of features. 
+        """
         return self.f_dim
 
-    def generate_minbatch(self, batch_size, minbatch_flag=True) :
+    def generate_minibatch(self, batch_size, minibatch_flag=True) :
+        """
+        Generate a mini-batch.
 
-        if minbatch_flag == True :
+        :param batch_size: size of mini-batch.
+        :type batch_size: int 
+
+        :param minibatch_flag: control whether generate mini-batch or entire data set.
+        :type minibatch_flag: bool
+        """
+
+        if minibatch_flag == True :
             # Randomly generate indices of samples from data set 
             self.active_indices = random.choices(range(self.K), cum_weights=self.cum_weights, k=batch_size)
             self.batch_size = batch_size
@@ -126,11 +192,19 @@ class data_set():
         self.x_batch.requires_grad = True
 
     def pre_processing_layer(self) :
+        """
+        Process data before it is sent to neural networks.
+        This function returns the mini-batch itself (i.e., no features is used
+        to transform data, in base class). It can be overrided in child class (i.e., mapping data to features).
+        """
         return self.x_batch
 
 
 class MD_data_set(data_set) :
-    # Data of molecular system
+    """
+    This class is a child class of :class:`data_set`, used for data of
+    molecular system.
+    """
 
     def __init__(self, xvec, weights) :
         super(MD_data_set, self).__init__(xvec, weights)
@@ -141,10 +215,17 @@ class MD_data_set(data_set) :
 
     @classmethod 
     def from_file(cls, states_filename) :
+        """
+        Initize the data set from file.
+        """
         self = super(MD_data_set, cls).from_file(states_filename) 
         return self
 
     def load_ref_state(self) :
+        """
+        Load a reference configuration from the file `./data/ref_state.txt`.
+        It is used to align the data.
+        """
         ref_state_filename = './data/ref_state.txt' 
         ref_state_file= open(ref_state_filename)
         contents = ref_state_file.readlines()
@@ -155,6 +236,13 @@ class MD_data_set(data_set) :
         return self
 
     def align(self) :
+        """
+        Align all states in the data set with respect to the reference
+        configuration. 
+        
+        This function implements the Kabash's algorithm, which minimizes the 
+        the root mean squared deviation of states with respect to the reference configuration.
+        """
         x = self.x_batch.reshape((-1, self.num_atoms, self.dim))
         x_angle_atoms = x[:,self.ref_index, :]
 
@@ -176,8 +264,13 @@ class MD_data_set(data_set) :
 
         return torch.matmul(x-x_c, rotate_mat).reshape((-1, self.tot_dim) )
 
-    # Features of data in mini-batch
     def map_to_feature(self, idx):
+        """
+        Map the states in the mini-batch to one feature.
+
+        :param idx: idx of the feature to which states are mapped.
+
+        """
         x = self.x_batch.reshape((-1, self.num_atoms, self.dim))
         f_name = self.features.f_tuples[idx][0]
         ag = self.features.f_tuples[idx][1]
@@ -205,6 +298,12 @@ class MD_data_set(data_set) :
             return torch.norm(r12, dim=1, keepdim=True)
 
     def map_to_all_features(self):
+        """
+        Map the states in the mini-batch to all features, by calling
+        :py:meth:`map_to_feature` for each feature.
+
+        :return: 2d torch tensor, whose dimensions are (batch_size, num_features).
+        """
         for i in range(self.num_features) :
             if i == 0 :
                 xf = self.map_to_feature(i) 
@@ -214,13 +313,22 @@ class MD_data_set(data_set) :
         return xf
 
     def write_all_features_file(self, feature_filename) :
-        # Use all data
-        self.generate_minbatch(self.K, False)
+        """
+        Map all states to features, and write the features to file.
+
+        :param feature_filename: filename to output features.
+        """
+        self.generate_minibatch(self.K, False)
         # Append weights to last column (after features) 
         xf_w = torch.cat((self.map_to_all_features(), self.weights.reshape((-1,1))), dim=1).detach().numpy() 
         np.savetxt(feature_filename, xf_w, header='%d %d' % (self.K, self.f_dim + 1), comments="", fmt="%.10f")
 
     def pre_processing_layer(self) :
+        """
+        If features are defined, then map data to features. Otherwise, return
+        the aligned data.
+
+        """
         if self.num_features > 0 :
             return self.map_to_all_features() 
         else :

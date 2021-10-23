@@ -1,6 +1,14 @@
 import configparser
 
 class Param:
+
+    """
+    This class holds all required parameters, read from the configuration file `params.cfg`.
+
+    :ivar pot_id: index of potentials.
+    :ivar dim: dimension of the system.
+    """
+    
     def __init__(self):
         # Read parameters from config file
         config = configparser.ConfigParser()

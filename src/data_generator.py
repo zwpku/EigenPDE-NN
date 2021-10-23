@@ -4,11 +4,23 @@ import numpy as np
 import random
 
 class PrepareData() :
+    """
+    This class prepares trajectory data for training neural networks.
+
+    :param Param: contains all parameters.
+    :type Param: :py:class:`read_parameters.Param`
+    """
+
     def __init__(self, Param) :
         self.Param = Param
 
-    # Sample data by simulating SDE
     def generate_sample_data(self) :
+        """
+        Generate sample data by simulating SDE using Euler-Maruyama scheme.
+
+        The data will be stored to file under `./data` directory with the filename
+        specified in `Param`.
+        """
 
         PotClass = potentials.PotClass(self.Param.dim, self.Param.pot_id, self.Param.stiff_eps)
 
@@ -71,13 +83,24 @@ class PrepareData() :
         print("\nSampled data are stored to: %s" % states_file_name)
 
     def prepare_data(self, training_data=True) :
+        """
+        Prepare training/testing data. 
+
+        When `Param.namd_data_flag=True`, it loads MD data using the class :class:`namd_loader_dipeptide.namd_data_loader`; 
+        otherwise, it generates sample data by calling
+        :py:meth:`generate_sample_data` (the potential in use is specified by :py:data:`read_parameters.Param.pot_id`).
+
+        :param training_data: whether generate data for training or for testing.
+        :type training_data: bool
+
+        """
         if self.Param.namd_data_flag == True :
             # use MD data 
             print ("Using MD data as training/validation data\n")
             namd_loader = namd_loader_dipeptide.namd_data_loader(self.Param, training_data) 
             namd_loader.save_namd_data_to_txt()
         else :
-            # Sample data by simulating SDE
+            # sample data by simulating SDE
 
             self.generate_sample_data() 
 
