@@ -1,13 +1,13 @@
 API
 ===
 
-.. automodule:: src.test
+.. automodule:: potentials
    :members:
 
-.. currentmodule:: src.test-new
-.. autofunction:: F
+.. automodule:: network_arch
+   :members:
 
-
-
+.. automodule:: data_set
+   :members:
 
 

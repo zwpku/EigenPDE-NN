@@ -12,7 +12,7 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('../src/'))
 
 
 # -- Project information -----------------------------------------------------
@@ -32,6 +32,8 @@ release = '0.1'
 # ones.
 extensions = [
         'sphinx.ext.autodoc',
+        'sphinx.ext.mathjax',
+        # 'sphinx_paramlinks',
         #'sphinx.ext.autosummary',
 ]
 
