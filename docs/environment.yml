@@ -1,11 +1,10 @@
 name: eigpdenn
 channels:
     - conda-forge
-    - omnia
 dependencies:
-    - python
+    - python>=3.7
     - setuptools
-    - pytorch 
+    - pytorch=1.9
     - numpy
     - pyyaml
 
