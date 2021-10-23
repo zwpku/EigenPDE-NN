@@ -1,0 +1,10 @@
+name: eigpdenn
+channels:
+    - conda-forge
+    - omnia
+dependencies:
+    - python
+    - setuptools
+    - pytorch 
+    - numpy
+
