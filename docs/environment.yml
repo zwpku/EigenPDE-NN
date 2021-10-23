@@ -4,7 +4,8 @@ channels:
 dependencies:
     - python>=3.7
     - setuptools
-    - pytorch=1.9
+    - pytorch-cpu=1.9
     - numpy
     - pyyaml
+    - pip>=21.1
 
