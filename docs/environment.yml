@@ -7,4 +7,5 @@ dependencies:
     - setuptools
     - pytorch 
     - numpy
+    - pyyaml
 
