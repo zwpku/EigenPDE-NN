@@ -23,6 +23,4 @@ sphinx:
 #    - pdf
 
 # Optionally declare the Python requirements required to build your docs
-python:
-   install:
-   - requirements: docs/requirement.yml
+#python:
