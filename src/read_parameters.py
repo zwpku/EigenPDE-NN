@@ -61,16 +61,6 @@ class Param:
         # Name of activation function
         self.activation_name = config['NeuralNetArch'].get('activation_name')
 
-        try:
-            self.nn_features = config['NeuralNetArch']['features']
-        except:
-            self.nn_features = None
-
-        if self.nn_features != None :
-            self.write_feature_to_file = config['Training'].getboolean('write_feature_to_file')
-        else: 
-            self.write_feature_to_file = False
-
         # Total gradient steps
         self.train_max_step = config['Training'].getint('train_max_step')
 
@@ -97,23 +87,12 @@ class Param:
         self.learning_rate_list = [float(x) for x in config['Training'].get('learning_rate_list').split(',')]
 
         # Penalty constants for each training stage
-        self.alpha_1_list = [float(x) for x in config['Training'].get('alpha_1_list').split(',')]
-        self.alpha_2_list = [float(x) for x in config['Training'].get('alpha_2_list').split(',')]
+        self.alpha_list = [float(x) for x in config['Training'].get('alpha_list').split(',')]
 
         # Use Rayleigh quotient or energy 
         self.use_Rayleigh_quotient = config['Training'].getboolean('use_Rayleigh_quotient')
 
         self.use_reduced_2nd_penalty = config['Training'].getboolean('use_reduced_2nd_penalty')
-
-        # Include extra steps for constriants
-        self.include_constraint_step = config['Training'].getboolean('include_constraint_step')
-        if self.include_constraint_step == True :
-            self.constraint_first_step = config['Training'].getint('constraint_first_step')
-            self.constraint_tol = config['Training'].getfloat('constraint_tol')
-            self.constraint_learning_rate = config['Training'].getfloat('constraint_learning_rate')
-            self.constraint_max_step = config['Training'].getint('constraint_max_step')
-            self.constraint_penalty_method  = config['Training'].getboolean('constraint_penalty_method')
-            self.constraint_how_often = config['Training'].getint('constraint_how_often')
 
         # If true, eigenvalues will be sorted ascendingly 
         self.sort_eigvals_in_training = config['Training'].getboolean('sort_eigvals_in_training')

@@ -7,7 +7,7 @@ import os
 
 import subprocess 
 
-HOME_DIR = "/home/wzhang/ongoing-projects/EigenPDE-solver-NN"
+HOME_DIR = "../"
 python_path = HOME_DIR+'/src/:'+HOME_DIR+'/utils:' + os.environ['PYTHONPATH']
 
 env_map = {'PATH': os.environ['PATH'], 'PYTHONPATH':python_path}

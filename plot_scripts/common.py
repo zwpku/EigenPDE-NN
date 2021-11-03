@@ -1,9 +1,9 @@
 import configparser
 
-working_dir_list = ['working_dir_test', 'working_dir_namd_ABF7e-1-100ns-MultiFeatures', 'working_dir_namd_ABF7e-1-100ns-MultiFeatures-2eigs', 'working_dir_1d_beta1.4-rerun', 'working_dir_100d_MetastableRadius', 'working_dir_5d_MetastableRadius', 'working_dir_20d_MetastableRadius', 'working_dir_100d_MetastableRadius']
+working_dir_list = ['working_dir', 'working_dir_namd_ABF7e-1-100ns-MultiFeatures', 'working_dir_namd_ABF7e-1-100ns-MultiFeatures-2eigs', 'working_dir_1d_beta1.4-rerun', 'working_dir_100d_MetastableRadius', 'working_dir_5d_MetastableRadius', 'working_dir_20d_MetastableRadius', 'working_dir_100d_MetastableRadius']
 task_name_list = ['2D metastable', 'Alanine Dipeptide', '100Dim, metastable in x_1 and x_2', '100Dim, metastable in x_1 and x_2', '100Dim, metastable in x_1 and x_2', '100Dim, metastable in x_1 and x_2']
 
-task_id = 2
+task_id = 0
 conjugated_eigvec_flag = 0
 
 with_FVD_solution = False

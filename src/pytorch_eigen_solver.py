@@ -34,44 +34,18 @@ class eigen_solver():
         self.sort_eigvals_in_training = Param.sort_eigvals_in_training
 
         self.learning_rate_list = Param.learning_rate_list
-        self.alpha_1_list = Param.alpha_1_list
-        self.alpha_2_list = Param.alpha_2_list
+        self.alpha_list = Param.alpha_list
 
         # Sizes of inner Layers (without input/output layers)
         self.arch_list = Param.inner_arch_size_list 
 
-        self.use_Rayleigh_quotient = Param.use_Rayleigh_quotient
-        self.use_reduced_2nd_penalty = Param.use_reduced_2nd_penalty
-
         self.activation_name = Param.activation_name
-        self.write_feature_to_file = Param.write_feature_to_file
-
-        self.features = data_set.feature_tuple(Param.nn_features) 
-
-        self.features.show_features()
-
-        self.features.convert_atom_ix_by_file('./data/atom_ids.txt')
 
         self.train_max_step = Param.train_max_step
 
         self.load_init_model = Param.load_init_model
 
         self.init_model_name = Param.init_model_name
-
-        self.include_constraint_step = Param.include_constraint_step
-
-        self.penalty_method = True 
-
-        if self.include_constraint_step == True :
-            self.constraint_tol = Param.constraint_tol
-            self.constraint_max_step = Param.constraint_max_step
-            self.constraint_learning_rate = Param.constraint_learning_rate 
-            self.constraint_learning_rate = Param.constraint_learning_rate 
-            self.constraint_penalty_method = Param.constraint_penalty_method 
-            self.constraint_how_often = Param.constraint_how_often
-            self.constraint_first_step = Param.constraint_first_step
-            if self.constraint_how_often == 0 :
-                self.constraint_how_often = self.train_max_step + 1
 
         self.print_every_step = Param.print_every_step
 
@@ -108,10 +82,6 @@ class eigen_solver():
             self.diag_coeff = torch.ones(self.tot_dim).double() * Param.diffusion_coeff * 1e7 * self.beta
         else :
             self.diag_coeff = torch.ones(self.tot_dim).double()
-
-        if self.use_Rayleigh_quotient == False and self.use_reduced_2nd_penalty == True :
-            self.use_reduced_2nd_penalty = False 
-            print ('Change the flag use_reduced_2nd_penalty=False, since reduced 2nd-order penalty is supported only when Rayleigh quotient is used.\n')
 
         print ("[Info]  beta = %.4f" % (self.beta))
         print ("[Info]  seed = %d" % (seed))
@@ -150,11 +120,11 @@ class eigen_solver():
             for param_tensor in src.nets[idx].state_dict():
                 des.nets[i].state_dict()[param_tensor].add_(src.nets[idx].state_dict()[param_tensor].detach())
 
+    def update_mean_and_var_of_model(self, model):
     # Perform the following operations on coefficients of neural networks :
     # 1) Compute mean and variance of averaged model on full sample data
     # 2) Shift mean value, 
     # 3) Normalize 
-    def update_mean_and_var_of_model(self, model):
 
         self.dataset.generate_minibatch(self.dataset.K, False) 
 
@@ -207,134 +177,39 @@ class eigen_solver():
         self.mean_list = [(self.y[:,idx] * self.b_weights).sum() / self.b_tot_weights for idx in range(self.k)]
         self.var_list = [(self.y[:,idx]**2 * self.b_weights).sum() / self.b_tot_weights - self.mean_list[idx]**2 for idx in range(self.k)]
 
-        """
-        self.b_angles = self.angles[x_batch_index,:]
 
-        c7eq_index = reduce(np.logical_and, (self.b_angles[:,0] > -120, self.b_angles[:,0] < -70, self.b_angles[:,1] > 40, self.b_angles[:,1] < 130))
-        #c7eq_index = self.b_angles[:,0] < 0
-        c7ax_index = reduce(np.logical_and, (self.b_angles[:, 0] > 40, self.b_angles[:, 0] < 100, self.b_angles[:,1] < 0, self.b_angles[:,1] > -150))
-        l_trans_index = reduce(np.logical_and, (self.b_angles[:,0] > -25, self.b_angles[:,0] < 25, self.b_angles[:,1] > -110, self.b_angles[:,1] < 0))
-        r_trans_index = reduce(np.logical_and, (self.b_angles[:,0] > 115, self.b_angles[:,0] < 140, self.b_angles[:,1] > -170, self.b_angles[:,1] < -30))
+    # Penalty term corresonding to constraints
+    def penalty_term(self) :
 
-        self.set_of_index_set = [c7eq_index, c7ax_index, l_trans_index, r_trans_index]
+      # Sum of squares of variance for each eigenfunction
+      penalty = sum([(self.var_list[idx] - 1.0)**2 for idx in range(self.k)])
 
-        print ('Name\tnum\t min-w\tmax-w\tsum-w\ttot-w\tpercent')
+      for idx in range(self.num_ij_pairs):
+        ij = self.ij_list[idx]
+        # Sum of squares of covariance between two different eigenfunctions
+        penalty += ((self.y[:, ij[0]] * self.y[:, ij[1]] * self.b_weights).sum() / self.b_tot_weights - self.mean_list[ij[0]] * self.mean_list[ij[1]])**2
 
-        num_of_regions = 4
-        region_names = ['C7eq', 'C7ax', 'l-channel', 'r-channel']
-
-        for idx_set in  range(num_of_regions) :
-            index_set = self.set_of_index_set[idx_set] 
-            core_weight = self.b_weights[index_set].sum()
-            if core_weight > 0 :
-                print ('%8s: %6d\t%8.2e\t%.2e\t%.2e\t%.1f\t%.2e' %
-                    (region_names[idx_set], len(self.b_weights[index_set]),
-                        self.b_weights[index_set].min(),
-                        self.b_weights[index_set].max(), core_weight,
-                        self.b_weights.sum(), core_weight / self.b_weights.sum() ) )
-
-        tmp_x = x_batch[:,0].detach().numpy()
-        self.neg_index =  tmp_x < 0
-        self.pos_index = tmp_x > 0
-        self.trans_index = np.logical_and(tmp_x > -0.3, tmp_x < 0.3)
-
-        self.set_of_index_set = [self.neg_index, self.pos_index, self.trans_index]
-
-        print (x_batch[self.neg_index].shape[0], x_batch[self.trans_index].shape[0], x_batch[self.pos_index].shape[0])
-        print (sum(self.b_weights[self.neg_index]), sum(self.b_weights[self.trans_index]), sum(self.b_weights[self.pos_index]))
-        print ('neg states: %d\n sum weight: %.4f (total: %.4f, ratio: %.4e)\n \
-                mean: %.4f (total: %.4f)\nvar:%.4f (total: %4f) \n' % (x_batch[self.neg_index].shape[0],
-                    sum(self.b_weights[self.neg_index]), self.b_tot_weights,
-                    sum(self.b_weights[self.trans_index]) / self.b_tot_weights,
-                    (self.y[self.neg_index,0] * self.b_weights[self.neg_index]).sum() / self.b_tot_weights, 
-                self.mean_list[0],
-                (self.y[self.neg_index,0]**2 * self.b_weights[self.neg_index]).sum() / self.b_tot_weights, 
-        self.var_list[0]) )
-        """
-
-
-    # Penalty terms corresonding to 1st-order and 2nd-order constraints
-    def penalty_terms(self) :
-
-        penalty = torch.zeros(2, requires_grad=True).double()
-
-        if self.use_Rayleigh_quotient == False :
-          # Include mean constraint in penalty
-          penalty[0] = sum([self.mean_list[idx]**2 for idx in range(self.k)])
-
-        if self.use_reduced_2nd_penalty == False :
-          # Sum of squares of variance for each eigenfunction
-          penalty[1] = sum([(self.var_list[idx] - 1.0)**2 for idx in range(self.k)])
-
-          for idx in range(self.num_ij_pairs):
-            ij = self.ij_list[idx]
-            # Sum of squares of covariance between two different eigenfunctions
-            penalty[1] += ((self.y[:, ij[0]] * self.y[:, ij[1]] * self.b_weights).sum() / self.b_tot_weights - self.mean_list[ij[0]] * self.mean_list[ij[1]])**2
-        else : 
-          for idx in range(self.num_ij_pairs) :
-            ij = self.ij_list[idx]
-            # Sum of squares of normalized covariance (or correlation coefficient) between two different eigenfunctions
-            penalty[1] += ((self.y[:, ij[0]] * self.y[:, ij[1]] * self.b_weights).sum() / self.b_tot_weights - self.mean_list[ij[0]] * self.mean_list[ij[1]])**2 / (self.var_list[ij[0]] * self.var_list[ij[1]])
         return penalty 
 
-    # Constraint steps: train neural networks in order to meet constraints
-    # (i.e. mean, variance, orthogonality of eigenfunctions)
-    def constraint_update_step(self, bsz):
+    def update_step(self, bsz, alpha_val):
+        """
+          This function calculates the loss function, 
+          and updates the neural network functions according to its gradient.
 
-        constraint_step_num = 0 
-        flag = True
+          The loss function consists of 
+               (1) linear combination (weighted by eig_w) of k Rayleigh quotients; 
+               (2) second-order constraints (i.e. orthogonality and normalization constraints). 
 
-        while flag :
+          alpha_val:  penalty constant used in Step (2) above.
 
-            # Compute function values and spatial gradients on batch data
-            self.fun_and_grad_on_data(bsz)
+          Unit of eigenvalues for Brownian dynamics: 
+            length:                 angstrom, 10^{-10}m ;
+            diffusion coefficient:  cm^2 s^{-1} = 10^{-13} m^2 ns^{-1}
 
-            # Compute penalties
-            penalty = self.penalty_terms()
-
-            loss = penalty[0] + penalty[1]
-
-            # Update training parameters according to minimize penalty loss
-            self.constraint_optimizer.zero_grad()
-            loss.backward()
-            self.constraint_optimizer.step()
-
-            constraint_step_num += 1 
-
-            if loss < self.constraint_tol : # Success 
-                flag = False
-            if constraint_step_num % 10 == 0 :  # Print information
-               print('Constraint steps:%d,   constraints= [%.4e, %.4e]' % (constraint_step_num, penalty[0], penalty[1]), flush=True)  
-            if constraint_step_num >= self.constraint_max_step : # Failed
-                print("Constraint tolerance %.4f not reached in %d steps.\n" % (self.constraint_tol, constraint_step_num), flush=True)  
-                exit(1)
-
-        print('Total constraint steps: %d,   constraints= [%.4e, %.4e]' % (constraint_step_num, penalty[0], penalty[1]), flush=True)  
-
-    """
-      This function calculates the loss function, 
-      and updates the neural network functions according to its gradient.
-
-      The loss function consists of 
-           (1) either (when computing the kth eigenvalue)
-                  the largest eigenvalue of certain k by k matrix , 
-               or (when computing the first k eigenvalues)
-                  the linear combination (weighted by eig_w) of k Energies or Rayleigh quotients; 
-           (2) k 1st-constraints (precisely, weighted inner products wrt. constant function);
-           (3) k 2nd-constraints (i.e. orthogonality and normalization constraints). 
-
-      alpha_vec:  two penalty constants used in Steps (2)-(3) above.
-
-
-      Unit of eigenvalues for Brownian dynamics: 
-        length:                 angstrom, 10^{-10}m ;
-        diffusion coefficient:  cm^2 s^{-1} = 10^{-13} m^2 ns^{-1}
-
-        As a result, the unit of Rayleigh quotient is 
-           10^{-13} m^2 ns^{-1} * 10^{20} m^{-2} = 10^7 ns^{-1}
-        This calculation will be used to compuate the diagnoal matrix.
-    """
-    def update_step(self, bsz, alpha_vec):
+            As a result, the unit of Rayleigh quotient is 
+               10^{-13} m^2 ns^{-1} * 10^{20} m^{-2} = 10^7 ns^{-1}
+            This calculation will be used to compuate the diagnoal matrix.
+        """
 
         # Compute function values and spatial gradients on batch data
         self.fun_and_grad_on_data(bsz)
@@ -348,43 +223,13 @@ class eigen_solver():
             # Sort the eigenvalues 
             eig_vals = eig_vals[cvec]
 
-        # The loss function is the linear combination of k terms.
-        if self.use_Rayleigh_quotient == False :
-            # Use energies
-            non_penalty_loss = 1.0 / (self.b_tot_weights * self.beta) * sum([self.eig_w[idx] * torch.sum((self.y_grad_vec[cvec[idx]]**2 * self.diag_coeff).sum(dim=1) * self.b_weights) for idx in range(self.k)])
-        else :
-            # Use Rayleigh quotients (i.e. energy divided by variance)
-            non_penalty_loss = 1.0 / (self.b_tot_weights * self.beta) * sum([self.eig_w[idx] * torch.sum((self.y_grad_vec[cvec[idx]]**2 * self.diag_coeff).sum(dim=1) * self.b_weights) / self.var_list[cvec[idx]]  for idx in range(self.k)])
-
-
-            """
-            partial_loss = []
-            partial_loss_noweight = []
-            for index_set in self.set_of_index_set :
-                num = sum(index_set)
-                neg_non_penalty_loss = 1.0 / (self.b_tot_weights * self.beta) * \
-                sum([self.eig_w[idx] * torch.sum((self.y_grad_vec[cvec[idx]][index_set,:]**2 * self.diag_coeff).sum(dim=1) * self.b_weights[index_set]) / self.var_list[cvec[idx]]  for idx in range(self.k)])
-                neg_non_penalty_loss_noweight = sum([self.eig_w[idx] *
-                    torch.sum((self.y_grad_vec[cvec[idx]][index_set,:]**2).sum(dim=1))
-                    / self.var_list[cvec[idx]]  for idx in range(self.k)]) / num
-
-                partial_loss = partial_loss + [neg_non_penalty_loss.detach().item()] 
-                partial_loss_noweight = partial_loss_noweight + [neg_non_penalty_loss_noweight.detach().item()]
-
-            print ('partial loss: ', partial_loss )
-            print ('partial loss noweight: ', partial_loss_noweight )
-            """
+        # Use Rayleigh quotients (i.e. energy divided by variance)
+        non_penalty_loss = 1.0 / (self.b_tot_weights * self.beta) * sum([self.eig_w[idx] * torch.sum((self.y_grad_vec[cvec[idx]]**2 * self.diag_coeff).sum(dim=1) * self.b_weights) / self.var_list[cvec[idx]]  for idx in range(self.k)])
 
         # Always compute penalty terms, even if not used
-        penalty = self.penalty_terms()
+        penalty = self.penalty_term()
 
-        # Total loss 
-        if self.penalty_method == True :
-            loss = 1.0 * non_penalty_loss + alpha_vec[0] * penalty[0] + alpha_vec[1] * penalty[1]
-        else :
-            # In this case, constraint is solved in constraint_update_step. 
-            # Therefore, in this step, train neuron network without penalty
-            loss = non_penalty_loss
+        loss = 1.0 * non_penalty_loss + alpha_val * penalty
 
         # Update training parameters
         self.optimizer.zero_grad()
@@ -413,7 +258,7 @@ class eigen_solver():
                 self.lr_scheduler(self.learning_rate_list[stage_index])
 
                 # Penalty constants 
-                alpha_vec = [self.alpha_1_list[stage_index], self.alpha_2_list[stage_index]] 
+                alpha_val = self.alpha_list[stage_index] 
 
                 # Vector used in computing spatial gradient of functions in pytorch, 
                 # where each component of the vector equals 1.
@@ -426,20 +271,13 @@ class eigen_solver():
                 # Reset parameters of averaged_model to zero
                 self.zero_model_parameters(self.averaged_model)
 
-                print ('\n[Info] Start %dth training stage from step %d\n\t batch size=%d, lr=%.4f, alpha=[%.2f,%.2f]\n' % (stage_index+1, i, bsz, self.learning_rate_list[stage_index], alpha_vec[0], alpha_vec[1]))
+                print ('\n[Info] Start %dth training stage from step %d\n\t batch size=%d, lr=%.4f, alpha=%.2f\n' % (stage_index+1, i, bsz, self.learning_rate_list[stage_index], alpha_val))
 
                 # Update the current stage index
                 stage_index += 1 
 
-            if self.include_constraint_step == True and i >= self.constraint_first_step :
-                if self.constraint_penalty_method == False :
-                    self.penalty_method = False
-                if i % self.constraint_how_often == 0 :
-                    # Train neural networks to meet constraints 
-                    self.constraint_update_step(bsz)
-
             # Train neuron networks to minimize loss 
-            eig_vals, cvec, loss, non_penalty_loss, penalty = self.update_step(bsz, alpha_vec)
+            eig_vals, cvec, loss, non_penalty_loss, penalty = self.update_step(bsz, alpha_val)
 
             # Update the statistics of eigenvalues
             for ii in range(self.k) :
@@ -481,7 +319,7 @@ class eigen_solver():
                 print( '\ni=%d, stage %d' % (i, stage_index)) 
                 print( '   loss= %.4e' % (loss) )
                 print('   eigenvalues= ', eig_vals)
-                print('   constraints= [%.4e, %.4e]' % (penalty[0], penalty[1]), flush=True)  
+                print('   constraints= %.4e' % (penalty), flush=True)  
 
                 # Print the vector or matrix norm of the gradient.
                 if self.print_gradient_norm == True : 
@@ -495,7 +333,7 @@ class eigen_solver():
 
                 # Store the log info
                 log_f.write('%d ' % i)
-                log_info_vec = [loss, non_penalty_loss, penalty[0], penalty[1]]
+                log_info_vec = [loss, non_penalty_loss, penalty]
                 log_info_vec.extend(eig_vals)
 
                 np.savetxt(log_f, np.asarray(log_info_vec).reshape(1,-1), fmt="%.6f")
@@ -520,24 +358,11 @@ class eigen_solver():
         if self.batch_uniform_weight == False : 
             self.dataset.set_nonuniform_batch_weight() 
 
-        if self.features.num_features > 0 :
-            self.dataset.set_features(self.features)
+        if self.namd_data_flag == True :
+            self.dataset.load_ref_state() 
 
-            if self.write_feature_to_file == True : 
-                # Output features to file
-                feature_filename = './data/features_on_data.txt'
-                self.dataset.write_all_features_file(feature_filename)
-                print ('[Info] Features (and weights) along data are written to file: %s' % feature_filename)
-
-            # Include the feature layer and the output layers of neural network
-            self.arch_list = [self.dataset.dim_of_features()] + self.arch_list + [1]
-        else :
-            if self.namd_data_flag == True :
-                self.dataset.load_ref_state() 
-
-            # Include the input/output layers of neural network
-            self.arch_list = [self.dataset.tot_dim] + self.arch_list + [1]
-
+        # Include the input/output layers of neural network
+        self.arch_list = [self.dataset.tot_dim] + self.arch_list + [1]
 
         # Load trained neural network
         if self.load_init_model == True :
@@ -565,10 +390,6 @@ class eigen_solver():
 
         # Initialize Adam optimizier, with initial learning rate for stage 0
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate_list[0])
-
-        # Create another optimizer for solving constriants
-        if self.include_constraint_step == True :
-            self.constraint_optimizer = torch.optim.Adam(self.model.parameters(), lr=self.constraint_learning_rate)
 
         # Display some information 
         tot_num_parameters = sum([p.numel() for p in self.model.parameters()])

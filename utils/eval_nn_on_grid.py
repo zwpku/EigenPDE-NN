@@ -37,7 +37,7 @@ if dim == 1 :
     str_header = '%f %f %d\n' % (xmin,xmax,nx)
     xvec = x_axis.reshape((ncell, 1))
     weights = np.ones(ncell) 
-    dataset = data_set.MD_data_set(xvec, weights)
+    dataset = data_set.data_set(xvec, weights)
 
 if dim == 2 :
     # Grid in R^2
@@ -64,7 +64,7 @@ if dim == 2 :
     xvec = np.transpose([np.tile(x_axis, len(y_axis)), np.repeat(y_axis, len(x_axis))])
 
     weights = np.ones(ncell) 
-    dataset = data_set.MD_data_set(xvec, weights)
+    dataset = data_set.data_set(xvec, weights)
 
 if dim > 2 :
     xmin = Param.xmin
@@ -99,7 +99,7 @@ if dim > 2 :
     xvec = np.concatenate((x1_vec, x2_vec, other_x), axis=1)
 
     weights = np.ones(ncell) 
-    dataset = data_set.MD_data_set(xvec, weights)
+    dataset = data_set.data_set(xvec, weights)
 
 # Load trained neural network
 file_name = './data/%s.pt' % (eig_file_name_prefix)
@@ -107,7 +107,7 @@ model = torch.load(file_name)
 model.eval()
 print ("Neural network loaded\n")
 
-dataset.generate_minbatch(dataset.K, False)
+dataset.generate_minibatch(dataset.K, False)
 # Evaluate neural network functions at states
 Y_hat_all = model(dataset).detach().numpy()
 

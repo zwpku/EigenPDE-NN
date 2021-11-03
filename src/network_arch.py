@@ -49,23 +49,9 @@ class MySequential(torch.nn.Module):
             self.linears[-1].weight /= torch.sqrt(var) 
             self.linears[-1].bias /= torch.sqrt(var)
 
-    def feature_forward(self, xf):
-        """
-        Map the feature to output tensor by the neural network.
-
-        :param xf: input feature.
-        :type xf: torch tensor
-
-        """
-        for i in range(len(self.nn_dims) - 1) :
-            xf = self.linears[i](xf)
-            if i < len(self.nn_dims) - 2 :
-                xf = self.activations[i](xf)
-        return xf
-
     def forward(self, x):
         """
-        Map the input data set to feature according to feature map, and then to output tensor by the neural network.
+        Map the input data set to output tensor by the neural network.
 
         :param x: input data set 
         :type x: :py:mod:`data_set.data_set`
@@ -74,7 +60,13 @@ class MySequential(torch.nn.Module):
         :rtype: torch tensor
         """
         xf = x.pre_processing_layer() 
-        return self.feature_forward(xf) 
+
+        for i in range(len(self.nn_dims) - 1) :
+            xf = self.linears[i](xf)
+            if i < len(self.nn_dims) - 2 :
+                xf = self.activations[i](xf)
+
+        return xf
 
 class MyNet(torch.nn.Module):
     """
@@ -112,16 +104,6 @@ class MyNet(torch.nn.Module):
 
         for i in range(self.d_out) :
             self.nets[i].shift_and_normalize(mean_list[i], var_list[i]) 
-
-    def feature_forward(self, xf):
-        """
-        Map the input feature `xf` to list of output tensors. For each neural
-        network in the list, it simply calls :py:meth:`network_arch.MySequential.feature_forward` function.
-
-        :param xf: input feature 
-        :type xf: torch tensor
-        """
-        return torch.cat([self.nets[i].feature_forward(xf) for i in range(self.d_out)], dim=1)
 
     def forward(self, x):
         """

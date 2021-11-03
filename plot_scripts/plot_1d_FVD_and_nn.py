@@ -24,7 +24,7 @@ if with_FVD_solution :
         else :
             data_file = open('../%s/data/%s_FVD_%d.txt' % (working_dir_name, eig_file_name_prefix, idx_vec[idx]), 'r')
         xmin, xmax, nx = [ float (x) for x in data_file.readline().split() ]
-        xvec = np.linspace(xmin, xmax, nx)
+        xvec = np.linspace(xmin, xmax, int(nx))
         sol_by_FVD=np.loadtxt(data_file, skiprows=1)
         plt.plot(xvec, sol_by_FVD, color=lc[idx], label=r'$FVD, idx=%d$' % (idx_vec[idx]) )
 
@@ -42,7 +42,7 @@ for idx in range(len(idx_vec)) :
         data_file = open('%s_%d.txt' % (base_name, idx_vec[idx]), 'r')
 
     xmin, xmax, nx  = [ float (x) for x in data_file.readline().split() ]
-    xvec = np.linspace(xmin, xmax, nx)
+    xvec = np.linspace(xmin, xmax, int(nx))
     sol_by_nn=np.loadtxt(data_file)
     plt.plot(xvec, sign_list[idx] * sol_by_nn, color=lc[idx-1], linestyle=':', label=r'$NN, idx=%d$' % (idx_vec[idx]))
 
