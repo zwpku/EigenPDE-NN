@@ -126,12 +126,13 @@ class eigen_solver():
     # 2) Shift mean value, 
     # 3) Normalize 
 
-        self.dataset.generate_minibatch(self.dataset.K, False) 
+        #self.dataset.generate_minibatch(self.dataset.K, False) 
+        self.dataset.generate_minibatch(10000, True) 
 
         # Evaluate function value on full data
         y = model(self.dataset).detach()
 
-        weights= self.dataset.weights_minibatch()
+        weights = self.dataset.weights_minibatch()
 
         # Total weights, will be used for normalization 
         tot_weights = weights.sum()
@@ -143,19 +144,17 @@ class eigen_solver():
         # Step 2 and 3
         model.shift_and_normalize(mean_of_nn, var_of_nn) 
 
-
-    """
-      Update the learning rate of optimizer, when a new training stage starts. 
-    """
     def lr_scheduler(self, lr):
+        """
+          Update the learning rate of optimizer, when a new training stage starts. 
+        """
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = lr
 
-    """ 
-      Evaluate functions and their spatial gradients on (local) batch data 
-    """
     def fun_and_grad_on_data(self, batch_size):
-
+        """ 
+          Evaluate functions and their spatial gradients on (local) batch data 
+        """
         self.dataset.generate_minibatch(batch_size) 
 
         # Evaluate function value on data
@@ -304,7 +303,7 @@ class eigen_solver():
                 self.update_mean_and_var_of_model(self.model_bak)
                 # Save networks to file 
                 file_name = './data/%s_stage%d.pt' % (self.eig_file_name_prefix, stage_index)
-                torch.save(self.model_bak, file_name)
+                #torch.save(self.model_bak, file_name)
 
                 # Take average of previous steps
                 for param in self.averaged_model.parameters():
@@ -312,7 +311,7 @@ class eigen_solver():
                 self.update_mean_and_var_of_model(self.averaged_model)
                 # Save networks to file 
                 file_name = './data/%s_stage%d_averaged.pt' % (self.eig_file_name_prefix, stage_index)
-                torch.save(self.averaged_model, file_name)
+                #torch.save(self.averaged_model, file_name)
 
             # Display some training information
             if i % self.print_every_step == 0 :

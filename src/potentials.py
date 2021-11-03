@@ -119,7 +119,7 @@ class PotClass():
         r"""
         Compute the gradient of :py:meth:`v_2d_dw_quadratic`.
         """
-        return np.column_stack((grad_modified_dw1d(x[:,0]),x[:,1]))
+        return np.column_stack((self.grad_modified_dw1d(x[:,0]),x[:,1]))
 
     def v_2d_3well(self, x):
         """
@@ -274,9 +274,12 @@ class PotClass():
             x1_vec = np.tile(x1_axis, len(x2_axis)).reshape(nx * ny, 1)
             x2_vec = np.repeat(x2_axis, len(x1_axis)).reshape(nx * ny, 1)
 
-            # When dim>2, the components in the other dimensions are set to zero.
-            other_x = np.tile(np.zeros(dim-2), nx* ny).reshape(nx* ny, dim-2)
-            x2d = np.concatenate((x1_vec, x2_vec, other_x), axis=1)
+            if self.dim > 2 :
+                # When dim>2, the components in the other dimensions are set to zero.
+                other_x = np.tile(np.zeros(dim-2), nx* ny).reshape(nx* ny, dim-2)
+                x2d = np.concatenate((x1_vec, x2_vec, other_x), axis=1)
+            else :
+                x2d = np.concatenate((x1_vec, x2_vec), axis=1)
 
             pot_vec = self.V(x2d)
 

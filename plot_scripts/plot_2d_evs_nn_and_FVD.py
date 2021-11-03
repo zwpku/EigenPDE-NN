@@ -32,8 +32,8 @@ if with_FVD_solution :
 
       Z = np.loadtxt(data_file)
 
-      x = np.linspace(xmin, xmax, nx)
-      y = np.linspace(ymin, ymax, ny)
+      x = np.linspace(xmin, xmax, int(nx))
+      y = np.linspace(ymin, ymax, int (ny))
 
       if num_k > 1 :
           fvd_ax = ax[0, i]
@@ -68,8 +68,8 @@ for i in range(len(idx_vec)) :
 
   Z = np.loadtxt(data_file, skiprows=0)
 
-  x = np.linspace(xmin, xmax, nx)
-  y = np.linspace(ymin, ymax, ny)
+  x = np.linspace(xmin, xmax, int (nx))
+  y = np.linspace(ymin, ymax, int (ny))
   X, Y = np.meshgrid(x,y)
 
 #  tot_min = Z.min() 
