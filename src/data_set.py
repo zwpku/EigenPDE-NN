@@ -2,78 +2,6 @@ import torch
 import numpy as np
 import random
 
-class feature_tuple():
-    """
-    Class containing features.
-
-    :param features: user-defined features. 
-    :type features: string
-
-    Currently supported types of features: 
-      dihedral angle, angle, bond.
-
-    """
-    def __init__(self, features):
-        if features == None :
-            self.num_features = 0
-        else :
-            self.f_dim = 0 
-            self.f_tuples = []
-            for feature_str in features.split(';') :
-                feature_str_split = feature_str.strip("{( )}\n").split(',')
-                # diheral angle, angle and bond length are considered in the current implementation
-                f_name = feature_str_split[0]
-                if f_name == 'dihedral' : 
-                    span = 2
-                if f_name == 'bond' : 
-                    span = 1
-                if f_name == 'angle' : 
-                    span = 1
-                ag = [int(xx) for xx in feature_str_split[1:]]
-                self.f_tuples.append([f_name, ag, list(range(self.f_dim, self.f_dim + span))])
-                self.f_dim += span
-
-            self.num_features = len(self.f_tuples) 
-            self.f_tuples = tuple(self.f_tuples)
-
-    def show_features(self) :
-        """
-        Display information of features.
-        """
-
-        print ('[Info]  No. of features: ', self.num_features)
-
-        if self.num_features > 0 :
-            print ('\tFeature dimension: ', self.f_dim)
-
-            for i in range(self.num_features): 
-              print ('\t%dth feature: ' % (i+1), self.f_tuples[i]) 
-
-    def convert_atom_ix_by_file(self, ids_filename) :
-        """
-        Convert indices in features according to the index file.
-        """
-
-        if self.num_features == 0 :
-            return 
-        self.ix_array = np.loadtxt(ids_filename, skiprows=1, dtype=int)
-        K = len(self.ix_array)
-        idx_vec = np.ones(int(np.max(self.ix_array))+1, dtype=int) * -1 
-        for idx in range(K) :
-            g_idx = self.ix_array[idx] 
-            idx_vec[g_idx] = idx
-
-        tmp_f_tuples = []
-        for f_idx in range(self.num_features) :
-            ag = [idx_vec[idx] for idx in self.f_tuples[f_idx][1]]
-            tmp_f_tuples.append([self.f_tuples[f_idx][0], ag, self.f_tuples[f_idx][2]])
-
-        self.f_tuples = tuple(tmp_f_tuples)
-
-        print ('[Info] Feature-tuple converted to local indices: ')
-        for f_id in range(len(self.f_tuples)) :
-            print ('\t%dth feature:' % (f_id+1), self.f_tuples[f_id])
-
 class data_set():
     """
     The class for data set. 
@@ -88,9 +16,6 @@ class data_set():
     :ivar K: number of data 
     :ivar active_index: indices of active states. 
         A state is included in mini-batch, if the entry is 1. 
-    :ivar features: the tuple of features (the state is first transformed to
-        features, before it is passed to neural networks).
-    :ivar num_features: number of features 
     :ivar batch_uniform_weight: when True (default), the data is included in mini-batch with equal probability.
     """
     def __init__(self, xvec, weights) :
@@ -107,9 +32,6 @@ class data_set():
         self.batch_uniform_weight = True 
         self.cum_weights = np.arange(1, self.K+1)
         
-        self.features = feature_tuple(None)
-        self.num_features = 0 
-
         print ('[Info]  Range of weights: [%.3e, %.ee]' % (self.weights.min(), self.weights.max()) )
 
     @classmethod 
@@ -145,24 +67,6 @@ class data_set():
         else :
             return torch.ones(self.batch_size, dtype=torch.float64)
 
-    def set_features(self, features) :
-        """
-        Set the features of the data set.
-        :param features: list of features.
-        :type features: 
-        """
-        # List of features
-        self.features = features
-        # Number of features used
-        self.num_features = self.features.num_features
-        self.f_dim = self.features.f_dim
-
-    def dim_of_features(self) :
-        """
-        Number of features. 
-        """
-        return self.f_dim
-
     def generate_minibatch(self, batch_size, minibatch_flag=True) :
         """
         Generate a mini-batch.
@@ -194,8 +98,8 @@ class data_set():
     def pre_processing_layer(self) :
         """
         Process data before it is sent to neural networks.
-        This function returns the mini-batch itself (i.e., no features is used
-        to transform data, in base class). It can be overrided in child class (i.e., mapping data to features).
+        This function returns the mini-batch itself.
+        It can be overrided in child class (i.e., aligning data wrt a reference).
         """
         return self.x_batch
 
@@ -264,73 +168,10 @@ class MD_data_set(data_set) :
 
         return torch.matmul(x-x_c, rotate_mat).reshape((-1, self.tot_dim) )
 
-    def map_to_feature(self, idx):
-        """
-        Map the states in the mini-batch to one feature.
-
-        :param idx: idx of the feature to which states are mapped.
-
-        """
-        x = self.x_batch.reshape((-1, self.num_atoms, self.dim))
-        f_name = self.features.f_tuples[idx][0]
-        ag = self.features.f_tuples[idx][1]
-        if f_name == 'dihedral': 
-            r12 = x[:, ag[1], :] - x[:, ag[0], :]
-            r23 = x[:, ag[2], :] - x[:, ag[1], :]
-            r34 = x[:, ag[3], :] - x[:, ag[2], :]
-            n1 = torch.cross(r12, r23)
-            n2 = torch.cross(r23, r34)
-            cos_phi = (n1*n2).sum(dim=1, keepdim=True)
-            sin_phi = (n1 * r34).sum(dim=1, keepdim=True) * torch.norm(r23, dim=1, keepdim=True)
-            radius = torch.sqrt(cos_phi**2 + sin_phi**2)
-            return torch.cat((cos_phi / radius, sin_phi / radius), dim=1)
-
-        if f_name == 'angle': 
-            r21 = x[:, ag[0], :] - x[:, ag[1], :]
-            r23 = x[:, ag[2], :] - x[:, ag[1], :]
-            r21l = torch.norm(r21, dim=1, keepdim=True)
-            r23l = torch.norm(r23, dim=1, keepdim=True)
-            cos_angle = (r21 * r23).sum(dim=1, keepdim=True) / (r21l * r23l)
-            return cos_angle
-
-        if f_name == 'bond': 
-            r12 = x[:, ag[1], :] - x[:, ag[0], :]
-            return torch.norm(r12, dim=1, keepdim=True)
-
-    def map_to_all_features(self):
-        """
-        Map the states in the mini-batch to all features, by calling
-        :py:meth:`map_to_feature` for each feature.
-
-        :return: 2d torch tensor, whose dimensions are (batch_size, num_features).
-        """
-        for i in range(self.num_features) :
-            if i == 0 :
-                xf = self.map_to_feature(i) 
-            else :
-                # Each column corresponds to one feature 
-                xf = torch.cat((xf, self.map_to_feature(i)), dim=1)
-        return xf
-
-    def write_all_features_file(self, feature_filename) :
-        """
-        Map all states to features, and write the features to file.
-
-        :param feature_filename: filename to output features.
-        """
-        self.generate_minibatch(self.K, False)
-        # Append weights to last column (after features) 
-        xf_w = torch.cat((self.map_to_all_features(), self.weights.reshape((-1,1))), dim=1).detach().numpy() 
-        np.savetxt(feature_filename, xf_w, header='%d %d' % (self.K, self.f_dim + 1), comments="", fmt="%.10f")
-
     def pre_processing_layer(self) :
         """
-        If features are defined, then map data to features. Otherwise, return
-        the aligned data.
-
+        Return the aligned data.
         """
-        if self.num_features > 0 :
-            return self.map_to_all_features() 
-        else :
-            return self.align()
+
+        return self.align()
 
