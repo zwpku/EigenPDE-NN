@@ -126,8 +126,7 @@ class eigen_solver():
     # 2) Shift mean value, 
     # 3) Normalize 
 
-        #self.dataset.generate_minibatch(self.dataset.K, False) 
-        self.dataset.generate_minibatch(10000, True) 
+        self.dataset.generate_minibatch(self.dataset.K, False) 
 
         # Evaluate function value on full data
         y = model(self.dataset).detach()
@@ -180,6 +179,8 @@ class eigen_solver():
     # Penalty term corresonding to constraints
     def penalty_term(self) :
 
+      penalty = torch.zeros(1, requires_grad=True).double()
+
       # Sum of squares of variance for each eigenfunction
       penalty = sum([(self.var_list[idx] - 1.0)**2 for idx in range(self.k)])
 
@@ -188,7 +189,7 @@ class eigen_solver():
         # Sum of squares of covariance between two different eigenfunctions
         penalty += ((self.y[:, ij[0]] * self.y[:, ij[1]] * self.b_weights).sum() / self.b_tot_weights - self.mean_list[ij[0]] * self.mean_list[ij[1]])**2
 
-        return penalty 
+      return penalty 
 
     def update_step(self, bsz, alpha_val):
         """
@@ -303,7 +304,7 @@ class eigen_solver():
                 self.update_mean_and_var_of_model(self.model_bak)
                 # Save networks to file 
                 file_name = './data/%s_stage%d.pt' % (self.eig_file_name_prefix, stage_index)
-                #torch.save(self.model_bak, file_name)
+                torch.save(self.model_bak, file_name)
 
                 # Take average of previous steps
                 for param in self.averaged_model.parameters():
@@ -311,7 +312,7 @@ class eigen_solver():
                 self.update_mean_and_var_of_model(self.averaged_model)
                 # Save networks to file 
                 file_name = './data/%s_stage%d_averaged.pt' % (self.eig_file_name_prefix, stage_index)
-                #torch.save(self.averaged_model, file_name)
+                torch.save(self.averaged_model, file_name)
 
             # Display some training information
             if i % self.print_every_step == 0 :

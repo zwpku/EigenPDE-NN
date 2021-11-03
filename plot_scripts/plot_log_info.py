@@ -5,7 +5,7 @@ import math
 from common import *
 
 lc = ['b', 'r', 'k', 'c', 'm', 'y', 'k']
-log_data_name_vec = ['tot_loss', 'loss_part_1', 'constraint-1', 'constraint-2']
+log_data_name_vec = ['tot_loss', 'loss_part_1', 'constraint']
 
 # load log data 
 log_info_vec = np.loadtxt('../%s/data/%s' % (working_dir_name, log_filename), skiprows=1)
@@ -13,7 +13,7 @@ log_info_vec = np.loadtxt('../%s/data/%s' % (working_dir_name, log_filename), sk
 for idx in range(1, log_info_vec.shape[1]):
     #plt.clf()
     fig, ax = plt.subplots(1, 1, figsize=(8, 5))
-    if idx < len(log_data_name_vec) :
+    if idx <= len(log_data_name_vec) :
         label_name = log_data_name_vec[idx-1]
     else :
         label_name = '%dth_eigval' % (idx - 3)

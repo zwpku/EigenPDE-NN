@@ -276,7 +276,7 @@ class PotClass():
 
             if self.dim > 2 :
                 # When dim>2, the components in the other dimensions are set to zero.
-                other_x = np.tile(np.zeros(dim-2), nx* ny).reshape(nx* ny, dim-2)
+                other_x = np.tile(np.zeros(self.dim-2), nx* ny).reshape(nx* ny, self.dim-2)
                 x2d = np.concatenate((x1_vec, x2_vec, other_x), axis=1)
             else :
                 x2d = np.concatenate((x1_vec, x2_vec), axis=1)
