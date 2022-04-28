@@ -1,0 +1,24 @@
+REMARK original generated coordinate pdb file
+ATOM      1  C   ALA X   1      -0.626   1.113  -2.112  1.00  0.00      ALA  C
+ATOM      2  O   ALA X   1       0.374   0.682  -2.681  1.00  0.00      ALA  O
+ATOM      3  NT  ALA X   1      -1.485   1.446  -2.502  0.00  0.00      ALA  N
+ATOM      4  HNT ALA X   1      -2.375   1.819  -2.243  0.00  0.00      ALA  H
+ATOM      5  CAT ALA X   1      -1.435   1.383  -3.499  0.00  0.00      ALA  C
+ATOM      6  HT1 ALA X   1       0.220   3.108  -0.747  1.00  0.00      ALA  H
+ATOM      7  HT2 ALA X   1      -0.767   3.067   0.352  1.00  0.00      ALA  H
+ATOM      8  HT3 ALA X   1      -0.674   1.944  -3.823  0.00  0.00      ALA  H
+ATOM      9  CAY ALA X   1       1.220   3.355  -0.053  0.00  0.00      ALA  C
+ATOM     10  HY1 ALA X   1       0.516   3.864   0.441  0.00  0.00      ALA  H
+ATOM     11  HY2 ALA X   1       1.545   3.891  -0.832  0.00  0.00      ALA  H
+ATOM     12  HY3 ALA X   1       1.983   3.146   0.559  0.00  0.00      ALA  H
+ATOM     13  CY  ALA X   1       0.828   2.498  -0.388  0.00  0.00      ALA  C
+ATOM     14  OY  ALA X   1       1.532   1.989  -0.882  0.00  0.00      ALA  O
+ATOM     15  N   ALA X   1      -0.132   2.450  -0.112  1.00  0.00      ALA  N
+ATOM     16  HN  ALA X   1      -0.836   2.959   0.382  0.00  0.00      ALA  H
+ATOM     17  CA  ALA X   1      -0.701   1.208  -0.598  1.00  0.00      ALA  C
+ATOM     18  HA  ALA X   1      -0.195   0.452  -0.182  1.00  0.00      ALA  H
+ATOM     19  CB  ALA X   1      -2.131   1.145  -0.150  1.00  0.00      ALA  C
+ATOM     20  HB1 ALA X   1      -2.472   2.128   0.241  1.00  0.00      ALA  H
+ATOM     21  HB2 ALA X   1      -2.795   0.864  -0.997  1.00  0.00      ALA  H
+ATOM     22  HB3 ALA X   1      -2.253   0.393   0.660  1.00  0.00      ALA  H
+END
