@@ -33,11 +33,11 @@ These two packages are not needed if one only wants to solve a PDE problem by tr
 
 #### 3. Generate trajectory data
 
-    Run the script [main.py](working_dir/main.py) *python ./main.py*, and choose task 0 from input.
+    Run the script [main.py](working_dir/main.py) `python ./main.py`, and choose task 0 from input.
 
 #### 3. Train neural networks
 
-    Run the script [main.py](working_dir/main.py) *python ./main.py*, and choose task 3 from input.
+    Run the script [main.py](working_dir/main.py) `python ./main.py`, and choose task 3 from input.
 
 ## Alanine Dipeptide example 
 
