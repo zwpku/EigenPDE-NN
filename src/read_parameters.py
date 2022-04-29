@@ -1,47 +1,63 @@
 import configparser
 
 class Param:
+    #This class holds all required parameters, read from the configuration file `params.cfg`.
 
-    """
-    This class holds all required parameters, read from the configuration file `params.cfg`.
-
-    :ivar pot_id: index of potentials.
-    :ivar dim: dimension of the system.
-    """
-    
     def __init__(self):
         # Read parameters from config file
         config = configparser.ConfigParser()
         config.read_file(open('params.cfg'))
 
-        self.dim = config['default'].getint('dim')
-        self.pot_id = config['default'].getint('pot_id')
-        self.stiff_eps = config['potential'].getfloat('stiff_eps')
+        # If true, train networks using MD data
+        self.md_data_flag = config['default'].getboolean('md_data_flag')
 
-        # This is the step-size used when sampling data. It is not used in training
-        self.delta_t = config['sample_data'].getfloat('delta_t')
-        # K: total numbers of states
-        self.K = int(config['sample_data'].getfloat('N_state'))
+        if self.md_data_flag == True : 
+            self.temp_T = config['MD'].getfloat('temperature')
+            self.diffusion_coeff = config['MD'].getfloat('diffusion_coeff')
+            self.psf_name = config['MD'].get('psf_name')
+            self.which_data_to_use = config['MD'].get('which_data_to_use')
+            self.use_biased_data = config['MD'].getboolean('use_biased_data')
+            self.weight_threshold_to_remove_states = config['MD'].getfloat('weight_threshold_to_remove_states')
+            self.align_data_flag = config['MD'].get('align_data_flag')
+
+            self.md_dcddata_filename_prefix = config['MD'].get('md_dcddata_filename_prefix')
+
+            self.md_dcddata_path = config['MD'].get('md_dcddata_path')
+            self.data_filename_prefix = config['MD'].get('data_filename_prefix')
+
+            self.md_dcddata_path_validation = config['MD'].get('md_dcddata_path_validation')
+            self.data_filename_prefix_validation = config['MD'].get('data_filename_prefix_validation')
+            # Physical quantities 
+            # Boltzmann constant (unit: kcal/(mol*K)). We use the same value as in MD.
+            Kb = 0.001987191 
+            # The unit of the PMF obtained from MD is: kcal/mol
+            # At T=300, md_beta = 1.6774
+            self.md_beta = 1.0 / (Kb * self.temp_T)
+        else :
+            self.dim = config['SDE'].getint('dim')
+            self.pot_id = config['SDE'].getint('pot_id')
+            self.stiff_eps = config['SDE'].getfloat('stiff_eps')
+
+            # This is the step-size used when sampling data. It is not used in training
+            self.delta_t = config['SDE'].getfloat('delta_t')
+            # K: total numbers of states
+            self.K = int(config['SDE'].getfloat('N_state'))
+            # Using biased data (reweighting) are used when 
+            # it is different from the value of beta.
+            self.SDE_beta = config['SDE'].getfloat('SDE_beta')
+            # Inverse temperature. 
+            self.beta = config['SDE'].getfloat('beta')
+            # Prefix of filename for trajectory data 
+            self.data_filename_prefix = config['SDE'].get('data_filename_prefix')
+
         self.load_data_how_often = int(config['default'].getfloat('load_data_how_often'))
-        # Coefficient under which the data is sampled. 
-        # Using biased data (reweighting) are used when 
-        # it is different from the value of beta.
-        self.SDE_beta = config['sample_data'].getfloat('SDE_beta')
-
-        # Inverse temperature. 
-        self.beta = config['default'].getfloat('beta')
-
-        # Prefix of filename for trajectory data 
-        self.data_filename_prefix = config['default'].get('data_filename_prefix')
-
         # Prefix of filename for eigenfunctions
         self.eig_file_name_prefix = config['default'].get('eig_file_name_prefix')
 
         # number of eigenvalues to learn
-        self.k = config['default'].getint('eig_k')
-
+        self.k = config['Training'].getint('eig_k')
         # Weights in the loss function
-        self.eig_w = [float(x) for x in config['default'].get('eig_weight').split(',')]
+        self.eig_w = [float(x) for x in config['Training'].get('eig_weight').split(',')]
 
         # Grid in R^2
         self.xmin = config['grid'].getfloat('xmin')
@@ -99,35 +115,6 @@ class Param:
 
         # Frequency to print information
         self.print_every_step = config['Training'].getint('print_every_step')
-
-        # If true, display norm of gradient during training
-        self.print_gradient_norm = config['Training'].getboolean('print_gradient_norm')
-        
-        # If true, train networks using MD data
-        self.namd_data_flag = config['default'].getboolean('namd_data_flag')
-
-        if self.namd_data_flag == True : 
-            self.temp_T = config['NAMD'].getfloat('temperature')
-            self.diffusion_coeff = config['NAMD'].getfloat('diffusion_coeff')
-            self.psf_name = config['NAMD'].get('psf_name')
-            self.which_data_to_use = config['NAMD'].get('which_data_to_use')
-            self.use_biased_data = config['NAMD'].getboolean('use_biased_data')
-            self.weight_threshold_to_remove_states = config['NAMD'].getfloat('weight_threshold_to_remove_states')
-            self.align_data_flag = config['NAMD'].get('align_data_flag')
-
-            self.namd_dcddata_filename_prefix = config['NAMD'].get('namd_dcddata_filename_prefix')
-
-            self.namd_dcddata_path = config['NAMD'].get('namd_dcddata_path')
-            self.data_filename_prefix = config['NAMD'].get('data_filename_prefix')
-
-            self.namd_dcddata_path_validation = config['NAMD'].get('namd_dcddata_path_validation')
-            self.data_filename_prefix_validation = config['NAMD'].get('data_filename_prefix_validation')
-            # Physical quantities 
-            # Boltzmann constant (unit: kcal/(mol*K)). We use the same value as in NAMD.
-            Kb = 0.001987191 
-            # The unit of the PMF obtained from NAMD is: kcal/mol
-            # At T=300, namd_beta = 1.6774
-            self.namd_beta = 1.0 / (Kb * self.temp_T)
 
         # Log file for training 
         self.log_filename = config['default'].get('log_filename')

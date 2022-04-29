@@ -19,15 +19,14 @@ class eigen_solver():
         # The meanings of parameters are commented in the file: read_parameters.py 
         self.k = Param.k
         self.eig_w = Param.eig_w
-        self.namd_data_flag = Param.namd_data_flag
+        self.md_data_flag = Param.md_data_flag
 
         # When MD data is used, compute beta from temperature
-        if  self.namd_data_flag == True : 
-            self.beta = Param.namd_beta
+        if  self.md_data_flag == True : 
+            self.beta = Param.md_beta
         else :
             self.beta = Param.beta
 
-        self.batch_uniform_weight = Param.batch_uniform_weight
         self.stage_list = Param.stage_list
         self.batch_size_list = Param.batch_size_list
 
@@ -48,8 +47,6 @@ class eigen_solver():
         self.init_model_name = Param.init_model_name
 
         self.print_every_step = Param.print_every_step
-
-        self.print_gradient_norm = Param.print_gradient_norm
 
         self.data_filename_prefix = Param.data_filename_prefix
         self.eig_file_name_prefix = Param.eig_file_name_prefix
@@ -76,7 +73,7 @@ class eigen_solver():
         self.tot_dim = len(fp.readline().split()) - 1
         fp.close()
 
-        if self.namd_data_flag == True : 
+        if self.md_data_flag == True : 
             # This is the diagnoal matrix; 
             # The unit of eigenvalues given by Rayleigh quotients is ns^{-1}.
             self.diag_coeff = torch.ones(self.tot_dim).double() * Param.diffusion_coeff * 1e7 * self.beta
@@ -321,13 +318,6 @@ class eigen_solver():
                 print('   eigenvalues= ', eig_vals)
                 print('   constraints= %.4e' % (penalty), flush=True)  
 
-                # Print the vector or matrix norm of the gradient.
-                if self.print_gradient_norm == True : 
-                    grad_list = np.concatenate([p.grad.numpy().flatten()  for p in self.model.parameters()], axis=None)
-                    coeff_list = np.concatenate([p.data.numpy().flatten() for p in self.model.parameters()], axis=None)
-                    print('   range of parameters: [%.4f, %.4f]' % (min(coeff_list), max(coeff_list)), flush=True)
-                    print('   range of gradients: [%.4f, %.4f]' % (min(grad_list), max(grad_list)), flush=True)
-
                 elapsed_time = time.process_time() - self.start_time
                 print( '   runtime: %.2f Sec' % elapsed_time )
 
@@ -350,15 +340,12 @@ class eigen_solver():
         states_filename = './data/%s.txt' % (self.data_filename_prefix)
 
         # Load trajectory data 
-        if self.namd_data_flag == True :
+        if self.md_data_flag == True :
             self.dataset = data_set.MD_data_set.from_file(states_filename)
         else :
             self.dataset = data_set.data_set.from_file(states_filename)
 
-        if self.batch_uniform_weight == False : 
-            self.dataset.set_nonuniform_batch_weight() 
-
-        if self.namd_data_flag == True :
+        if self.md_data_flag == True :
             self.dataset.load_ref_state() 
 
         # Include the input/output layers of neural network

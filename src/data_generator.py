@@ -1,4 +1,4 @@
-import namd_loader_dipeptide
+import md_loader_dipeptide
 import potentials 
 import numpy as np
 import random
@@ -86,7 +86,7 @@ class PrepareData() :
         """
         Prepare training/testing data. 
 
-        When `Param.namd_data_flag=True`, it loads MD data using the class :class:`namd_loader_dipeptide.namd_data_loader`; 
+        When `Param.md_data_flag=True`, it loads MD data using the class :class:`md_loader_dipeptide.md_data_loader`; 
         otherwise, it generates sample data by calling
         :py:meth:`generate_sample_data` (the potential in use is specified by :py:data:`read_parameters.Param.pot_id`).
 
@@ -94,11 +94,11 @@ class PrepareData() :
         :type training_data: bool
 
         """
-        if self.Param.namd_data_flag == True :
+        if self.Param.md_data_flag == True :
             # use MD data 
             print ("Using MD data as training/validation data\n")
-            namd_loader = namd_loader_dipeptide.namd_data_loader(self.Param, training_data) 
-            namd_loader.save_namd_data_to_txt()
+            md_loader = md_loader_dipeptide.md_data_loader(self.Param, training_data) 
+            md_loader.save_md_data_to_txt()
         else :
             # sample data by simulating SDE
 

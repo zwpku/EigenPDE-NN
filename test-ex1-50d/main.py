@@ -6,10 +6,14 @@ import os
 
 import subprocess 
 
-HOME_DIR = "/home/mi/weizhang/study/projects/ongoing/EigenPDESolver-NN"
-python_path = HOME_DIR+'/src/:'+HOME_DIR+'/utils:' + os.environ['PYTHONPATH']
+HOME_DIR = f'{os.getcwd()}/../'
 
-env_map = {'PATH': os.environ['PATH'], 'PYTHONPATH':python_path}
+if os.environ.get('PYTHONPATH') :
+    python_path = HOME_DIR+'/src/:'+HOME_DIR+'/utils:' + os.environ.get('PYTHONPATH')
+else :
+    python_path = HOME_DIR+'/src/:'+HOME_DIR+'/utils' 
+
+env_map = {'PATH': os.environ.get('PATH'), 'PYTHONPATH':python_path}
 
 # Create directory ./data, if not exist yet.
 if not os.path.exists('./data'):

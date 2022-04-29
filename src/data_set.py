@@ -16,7 +16,6 @@ class data_set():
     :ivar K: number of data 
     :ivar active_index: indices of active states. 
         A state is included in mini-batch, if the entry is 1. 
-    :ivar batch_uniform_weight: when True (default), the data is included in mini-batch with equal probability.
     """
     def __init__(self, xvec, weights) :
         self.X_vec = torch.from_numpy(xvec).double()
@@ -29,7 +28,6 @@ class data_set():
         self.active_index = range(self.K)
         self.batch_size = self.K
 
-        self.batch_uniform_weight = True 
         self.cum_weights = np.arange(1, self.K+1)
         
         print ('[Info]  Range of weights: [%.3e, %.ee]' % (self.weights.min(), self.weights.max()) )
@@ -47,25 +45,11 @@ class data_set():
 
         return cls(state_weight_vec[:,:-1], state_weight_vec[:,-1])
 
-    def set_nonuniform_batch_weight(self) :
-        """
-        By default, :py:data:`batch_uniform_weight` is True and indices for mini-batch are selected with equal
-        probability, unless this function is called, which set
-        :py:data:`batch_uniform_weight` to False, and indices for mini-batch will
-        be selected randomly according to their weights. 
-        """
-        self.batch_uniform_weight = False
-        self.cum_weights = np.cumsum(self.weights).numpy()
-
     def weights_minibatch(self) :
         """
         Return the array containing the weights of states in mini-batch. 
-        The array will be constant 1 if :py:data:`batch_uniform_weight` is False.
         """
-        if self.batch_uniform_weight == True : 
-            return self.weights[self.active_indices]
-        else :
-            return torch.ones(self.batch_size, dtype=torch.float64)
+        return self.weights[self.active_indices]
 
     def generate_minibatch(self, batch_size, minibatch_flag=True) :
         """
