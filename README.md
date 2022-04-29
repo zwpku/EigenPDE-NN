@@ -1,6 +1,8 @@
 # EigenPDE-solver-NN
 An Eigenvalue PDE Solver by Neural Networks
 
+This package solves the first several eigenvalues/eigenfunctions of the eigenvalue PDE problem ![formula](https://render.githubusercontent.com/render/math?math=-\mathcal{L}f=\lambda f), where ![formula](https://render.githubusercontent.com/render/math?math=\mathcal{L}) is the infiniesimal generator of certain type of stochastic diffusion processes whose invariant measure is ![formula](https://render.githubusercontent.com/render/math?math=\mu).
+
 ## Preparation
 #### 1. Dependances (optional)
 
@@ -31,10 +33,5 @@ These two packages are **not** needed if one only wants to solve a PDE problem b
 
 ```
    ./main.py
-```
 
-
-<img src="https://render.githubusercontent.com/render/math?math=e^{i \pi} = -1">
-
-![formula](https://render.githubusercontent.com/render/math?math=e^{i\pi}=-1)
 
