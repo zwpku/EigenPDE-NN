@@ -54,11 +54,11 @@ Two examples are included under [examples](examples).
 ```
 
 #### 2. Generate MD data
-  See the steps in [README](examples/MDdata/README.md).
+  See the steps in [README](examples/test-ex2/MDdata/README.md).
 
-#### 2. Prepare data for training 
+#### 3. Prepare data for training 
   Run the script [main.py](examples/test-ex2/main.py) by `python ./main.py`, and choose task 0 from input.
 
-#### 3. Train neural networks
+#### 4. Train neural networks
 
   Run the script [main.py](examples/test-ex2/main.py) by `python ./main.py`, and choose task 3 from input.
