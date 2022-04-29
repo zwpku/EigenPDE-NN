@@ -5,7 +5,7 @@ This package trains artificial neural networks to solve the first several eigenv
 <img src="https://render.githubusercontent.com/render/math?math=-\mathcal{L}f=\lambda f">, where ![formula](https://render.githubusercontent.com/render/math?math=\mathcal{L}) is the infiniesimal generator of certain type of stochastic diffusion processes whose invariant measure is ![formula](https://render.githubusercontent.com/render/math?math=\mu).
 
 A trajectory data (possibly biased with biasing weights) is needed as training data. Such data can be generated either 
-1. using a numerical scheme (e.g., Euler-Maruyama scheme), for diffusion processes whose stochastic differential equation (SDE) is <img src="https://render.githubusercontent.com/render/math?math=dX_t = -\nabla V(X_t)dt + \sqrt{2\beta^{-1}}dW_t"> with a specified potential; or 
+1. using a numerical scheme (e.g., Euler-Maruyama scheme), for diffusion processes whose stochastic differential equation (SDE) is <img src="https://render.githubusercontent.com/render/math?math=dX_t = -\nabla V(X_t)dt%2b\sqrt{2\beta^{-1}}dW_t"> with a specified potential; or 
 2. using a molecular simulation package (e.g., NAMD), for molecular systems.
 
 ## Preparation
