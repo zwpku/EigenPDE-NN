@@ -11,7 +11,7 @@ A trajectory data (possibly biased with biasing weights) is needed as training d
 ## Preparation
 #### 1. Dependances 
 
-- [PyTorch](https://www.pytorch.org/).
+- [PyTorch](https://pytorch.org/)
 
 - [MDAnalysis](https://www.mdanalysis.org/) is used to load MD data. 
 
@@ -24,7 +24,10 @@ These two packages are not needed if one only wants to solve a PDE problem by tr
 	git clone https://github.com/zwpku/EigenPDE-NN.git
 ```
 
-## A model example of dimension 50
+## Two examples 
+Two examples are included under [examples](examples).
+
+### Example 1: A model example of dimension 50
 
 #### 1. Enter the directory corresponding to this example
 
@@ -41,7 +44,7 @@ These two packages are not needed if one only wants to solve a PDE problem by tr
 
   Run the script [main.py](examples/test-ex1-50d/main.py) by `python ./main.py`, and choose task 3 from input.
 
-## Alanine Dipeptide example 
+### Example 2: Alanine Dipeptide example 
 
 #### 1. Enter the directory corresponding to this example
 
@@ -59,4 +62,3 @@ These two packages are not needed if one only wants to solve a PDE problem by tr
 #### 3. Train neural networks
 
   Run the script [main.py](examples/test-ex2/main.py) by `python ./main.py`, and choose task 3 from input.
-
