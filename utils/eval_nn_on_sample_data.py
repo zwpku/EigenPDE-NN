@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 import MDAnalysis as mda 
 from MDAnalysis import transformations
@@ -12,12 +12,10 @@ from numpy import exp
 from math import pi
 import torch
 
-import potentials 
 import read_parameters 
-import namd_loader_dipeptide
 import data_set
 
-Param = read_parameters.Param()
+Param = read_parameters.Param(use_sections={'grid','training'})
 
 print ('use validation data [y/n]:') 
 use_validation_data = input()
@@ -27,13 +25,7 @@ if use_validation_data == 'y':
 else :
     states_filename = './data/%s.txt' % (Param.data_filename_prefix)
 
-dataset = data_set.MD_data_set.from_file(states_filename)
-
-features = data_set.feature_tuple(Param.nn_features)
-features.convert_atom_ix_by_file('./data/atom_ids.txt')
-
-if features.num_features > 0 :
-    dataset.set_features(features)
+dataset = data_set.data_set.from_file(states_filename)
 
 K = dataset.K
 
@@ -50,8 +42,7 @@ model = torch.load(file_name)
 model.eval()
 print ("Neural network loaded\n")
 
-dataset.generate_minbatch(dataset.K, False)
-dataset.load_ref_state() 
+dataset.generate_minibatch(dataset.K, False)
 
 # Evaluate neural network functions at states
 Y_hat_all = model(dataset).detach().numpy()

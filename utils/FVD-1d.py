@@ -9,7 +9,7 @@ from numpy import linalg as LA
 import potentials 
 import read_parameters
 
-Param = read_parameters.Param()
+Param = read_parameters.Param(use_sections={'grid', 'training'})
 PotClass = potentials.PotClass(Param.dim, Param.pot_id, Param.stiff_eps)
 
 # Dimension should be one
@@ -29,8 +29,6 @@ xmax = Param.xmax
 nx = Param.nx
 # Mesh size
 dx = (xmax - xmin) / nx
-
-print (nx)
 
 # Compute one eigenvalue more than required
 ev_num = Param.k + 1

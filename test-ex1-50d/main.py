@@ -26,7 +26,7 @@ if not os.path.exists('./fig'):
     print ("Directory ./fig created.")
 
 # List of possible scripts 
-script_name_list = ["/utils/prepare_data.py", "/utils/prepare_data.py", "/utils/plot_hist_weights_namd.py", "/utils/train_nn.py", "/utils/eval_nn_on_grid.py", "/utils/eval_nn_on_sample_data.py", "/utils/FVD-1d.py", "/utils/FVD-2d.py -eps_monitor"]
+script_name_list = ["/utils/prepare_data.py", "/utils/prepare_data.py test", "/utils/plot_hist_weights_namd.py", "/utils/train_nn.py", "/utils/eval_nn_on_grid.py", "/utils/eval_nn_on_sample_data.py", "/utils/FVD-1d.py", "/utils/FVD-2d.py -eps_monitor"]
 
 script_info_list = ["Prepare training data",  
         "Prepare test data",
@@ -48,9 +48,7 @@ task_id = int (input())
 # Run one of the scripts above
 print ("Task %d: %s, \nCommand: %s\n" % (task_id, script_info_list[task_id], script_name_list[task_id]), flush=True)
 
-if task_id != 1 :
-    subprocess.run(HOME_DIR + script_name_list[task_id], env=env_map)
-else :
-    subprocess.run([HOME_DIR + script_name_list[1], 'test'], env=env_map)
+cmd = HOME_DIR + script_name_list[task_id]
 
+subprocess.run(cmd.split(), env=env_map)
 

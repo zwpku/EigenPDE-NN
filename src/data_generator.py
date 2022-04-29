@@ -14,7 +14,7 @@ class PrepareData() :
     def __init__(self, Param) :
         self.Param = Param
 
-    def generate_sample_data(self) :
+    def generate_sample_data(self, training_data) :
         """
         Generate sample data by simulating SDE using Euler-Maruyama scheme.
 
@@ -26,7 +26,13 @@ class PrepareData() :
 
         PotClass.output_potential(self.Param)
 
-        print ("Generate training data by Euler-Maruyama scheme\n")
+        if training_data:
+            print ("Generate training data by Euler-Maruyama scheme\n")
+            data_filename_prefix = self.Param.data_filename_prefix
+        else :
+            print ("Generate validataion data by Euler-Maruyama scheme\n")
+            data_filename_prefix = self.Param.data_filename_prefix_validation
+
         dim = self.Param.dim
         # Step-size in the numerical scheme
         delta_t = self.Param.delta_t 
@@ -41,9 +47,6 @@ class PrepareData() :
         beta = self.Param.beta
         # beta used in sampling 
         SDE_beta = self.Param.SDE_beta
-
-        # Filename of the trajectory data
-        data_filename_prefix = self.Param.data_filename_prefix
 
         print ("beta=%.2f\tdelta_t=%.2e\tSDE_beta=%.2f\n" % (beta, delta_t, SDE_beta))
 
@@ -102,5 +105,5 @@ class PrepareData() :
         else :
             # sample data by simulating SDE
 
-            self.generate_sample_data() 
+            self.generate_sample_data(training_data) 
 

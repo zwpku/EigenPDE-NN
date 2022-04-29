@@ -12,6 +12,6 @@ training_data = True
 if len(sys.argv) > 1 and sys.argv[1] == 'test' :
     training_data = False
 
-Param = read_parameters.Param()
+Param = read_parameters.Param(use_sections={'grid'})
 data_proc = PrepareData(Param) 
 data_proc.prepare_data(training_data)

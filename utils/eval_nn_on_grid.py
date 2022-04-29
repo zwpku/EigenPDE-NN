@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 from numpy import linalg as LA
 import numpy as np
 import random
@@ -11,10 +11,10 @@ import potentials
 import read_parameters 
 import data_set
 
-Param = read_parameters.Param()
+Param = read_parameters.Param(use_sections={'grid', 'training'})
 PotClass = potentials.PotClass(Param.dim, Param.pot_id, Param.stiff_eps)
 
-assert Param.namd_data_flag == False , 'This script is not for NAMD data'
+assert Param.md_data_flag == False , 'This script is not for MD data'
 
 k = Param.k
 

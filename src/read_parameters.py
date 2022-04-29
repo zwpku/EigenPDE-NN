@@ -3,7 +3,8 @@ import configparser
 class Param:
     #This class holds all required parameters, read from the configuration file `params.cfg`.
 
-    def __init__(self):
+    def __init__(self, use_sections=set()):
+
         # Read parameters from config file
         config = configparser.ConfigParser()
         config.read_file(open('params.cfg'))
@@ -49,74 +50,72 @@ class Param:
             self.beta = config['SDE'].getfloat('beta')
             # Prefix of filename for trajectory data 
             self.data_filename_prefix = config['SDE'].get('data_filename_prefix')
+            self.data_filename_prefix_validation = config['SDE'].get('data_filename_prefix_validation')
 
         self.load_data_how_often = int(config['default'].getfloat('load_data_how_often'))
         # Prefix of filename for eigenfunctions
         self.eig_file_name_prefix = config['default'].get('eig_file_name_prefix')
 
-        # number of eigenvalues to learn
-        self.k = config['Training'].getint('eig_k')
-        # Weights in the loss function
-        self.eig_w = [float(x) for x in config['Training'].get('eig_weight').split(',')]
+        if 'training' in use_sections:
+            # number of eigenvalues to learn
+            self.k = config['Training'].getint('eig_k')
+            # Weights in the loss function
+            self.eig_w = [float(x) for x in config['Training'].get('eig_weight').split(',')]
 
-        # Grid in R^2
-        self.xmin = config['grid'].getfloat('xmin')
-        self.xmax = config['grid'].getfloat('xmax')
-        self.nx = config['grid'].getint('nx')
-        self.ymin = config['grid'].getfloat('ymin')
-        self.ymax = config['grid'].getfloat('ymax')
-        self.ny = config['grid'].getint('ny')
+            # Architectual of neural networks
+            self.inner_arch_size_list = [int(x) for x in config['NeuralNetArch'].get('arch_size_list').split(',')]
 
-        # Tolerance and maximal iterations 
-        self.error_tol = config['FVD2d'].getfloat('error_tol')
-        self.iter_n = config['FVD2d'].getint('iter_n')
+            # Name of activation function
+            self.activation_name = config['NeuralNetArch'].get('activation_name')
 
-        # Architectual of neural networks
-        self.inner_arch_size_list = [int(x) for x in config['NeuralNetArch'].get('arch_size_list').split(',')]
+            # Total gradient steps
+            self.train_max_step = config['Training'].getint('train_max_step')
 
-        # Name of activation function
-        self.activation_name = config['NeuralNetArch'].get('activation_name')
+            # Whether start from a trained model 
+            self.load_init_model = config['Training'].getboolean('load_init_model')
 
-        # Total gradient steps
-        self.train_max_step = config['Training'].getint('train_max_step')
+            # the filename of trained model
+            self.init_model_name = config['Training'].get('init_model_name')
 
-        # Whether start from a trained model 
-        self.load_init_model = config['Training'].getboolean('load_init_model')
+            #Total batch size 
+            self.batch_size_list = [int(x) for x in config['Training'].get('batch_size_list').split(',')] 
 
-        # the filename of trained model
-        self.init_model_name = config['Training'].get('init_model_name')
+            self.batch_uniform_weight = config['Training'].getboolean('batch_uniform_weight')
 
-        #Total batch size 
-        self.batch_size_list = [int(x) for x in config['Training'].get('batch_size_list').split(',')] 
+            # Train stages 
+            self.stage_list = [int(x) for x in config['Training'].get('stage_list').split(',')]
 
-        self.batch_uniform_weight = config['Training'].getboolean('batch_uniform_weight')
+            assert len(self.batch_size_list) == len(self.stage_list), "batch sizes are not set correctly!" 
+            assert self.stage_list[0] == 0, "the first stage should start from step 0!"
 
-        # Train stages 
-        self.stage_list = [int(x) for x in config['Training'].get('stage_list').split(',')]
+            self.stage_list.append(self.train_max_step)
 
-        assert len(self.batch_size_list) == len(self.stage_list), "batch sizes are not set correctly!" 
-        assert self.stage_list[0] == 0, "the first stage should start from step 0!"
+            # Learning rate for each training stage
+            self.learning_rate_list = [float(x) for x in config['Training'].get('learning_rate_list').split(',')]
 
-        self.stage_list.append(self.train_max_step)
+            # Penalty constants for each training stage
+            self.alpha_list = [float(x) for x in config['Training'].get('alpha_list').split(',')]
 
-        # Learning rate for each training stage
-        self.learning_rate_list = [float(x) for x in config['Training'].get('learning_rate_list').split(',')]
+            # If true, eigenvalues will be sorted ascendingly 
+            self.sort_eigvals_in_training = config['Training'].getboolean('sort_eigvals_in_training')
 
-        # Penalty constants for each training stage
-        self.alpha_list = [float(x) for x in config['Training'].get('alpha_list').split(',')]
-
-        # Use Rayleigh quotient or energy 
-        self.use_Rayleigh_quotient = config['Training'].getboolean('use_Rayleigh_quotient')
-
-        self.use_reduced_2nd_penalty = config['Training'].getboolean('use_reduced_2nd_penalty')
-
-        # If true, eigenvalues will be sorted ascendingly 
-        self.sort_eigvals_in_training = config['Training'].getboolean('sort_eigvals_in_training')
-
-        # Frequency to print information
-        self.print_every_step = config['Training'].getint('print_every_step')
+            # Frequency to print information
+            self.print_every_step = config['Training'].getint('print_every_step')
 
         # Log file for training 
         self.log_filename = config['default'].get('log_filename')
 
+        if 'grid' in use_sections:
+            # Grid in R^2
+            self.xmin = config['grid'].getfloat('xmin')
+            self.xmax = config['grid'].getfloat('xmax')
+            self.nx = config['grid'].getint('nx')
+            self.ymin = config['grid'].getfloat('ymin')
+            self.ymax = config['grid'].getfloat('ymax')
+            self.ny = config['grid'].getint('ny')
+
+        if 'FVD2d' in use_sections:
+            # Tolerance and maximal iterations 
+            self.error_tol = config['FVD2d'].getfloat('error_tol')
+            self.iter_n = config['FVD2d'].getint('iter_n')
 

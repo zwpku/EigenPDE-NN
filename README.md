@@ -22,16 +22,16 @@ These two packages are not needed if one only wants to solve a PDE problem by tr
 	git clone https://github.com/zwpku/EigenPDE-solver-NN.git
 ```
 
-## A model example of dimension 50.
+## A model example of dimension 50
 
-#### 1. Enter the directory corresponding to this example.
+#### 1. Enter the directory corresponding to this example
 
 ```
     cd ./EigenPDE-solver-NN
     cd ./test-ex1-50d
 ```
 
-#### 3. Generate trajectory data
+#### 2. Generate trajectory data
 
   Run the script [main.py](test-ex1-50d/main.py) by `python ./main.py`, and choose task 0 from input.
 
@@ -40,4 +40,21 @@ These two packages are not needed if one only wants to solve a PDE problem by tr
   Run the script [main.py](test-ex1-50d/main.py) by `python ./main.py`, and choose task 3 from input.
 
 ## Alanine Dipeptide example 
+
+#### 1. Enter the directory corresponding to this example
+
+```
+    cd ./EigenPDE-solver-NN
+    cd ./test-ex2
+```
+
+#### 2. Generate MD data
+  See the steps in [README](MDdata/README.md).
+
+#### 2. Prepare data for training 
+  Run the script [main.py](test-ex1-50d/main.py) by `python ./main.py`, and choose task 0 from input.
+
+#### 3. Train neural networks
+
+  Run the script [main.py](test-ex1-50d/main.py) by `python ./main.py`, and choose task 3 from input.
 

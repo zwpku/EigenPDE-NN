@@ -6,7 +6,7 @@ import pytorch_eigen_solver
 
 # Train neural networks
 
-Param = read_parameters.Param()
+Param = read_parameters.Param(use_sections={'training'})
 
 # Set random seed, different processors start from different seeds
 seed = 3905 + int(time.time()) 

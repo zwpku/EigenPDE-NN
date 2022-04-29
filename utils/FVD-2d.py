@@ -121,7 +121,7 @@ rank = PETSc.Comm.getRank(PETSc.COMM_WORLD)
 size = PETSc.Comm.getSize(PETSc.COMM_WORLD)
 Print ("rank = %d, size=%d" % (rank, size) )
 
-Param = read_parameters.Param()
+Param = read_parameters.Param(use_sections={'grid', 'training', 'FVD2d'})
 PotClass = potentials.PotClass(Param.dim, Param.pot_id, Param.stiff_eps)
 
 dim = Param.dim
