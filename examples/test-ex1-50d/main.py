@@ -6,12 +6,9 @@ import os
 
 import subprocess 
 
-HOME_DIR = f'{os.getcwd()}/../'
+HOME_DIR = f'{os.getcwd()}/../../'
 
-if os.environ.get('PYTHONPATH') :
-    python_path = HOME_DIR+'/src/:'+HOME_DIR+'/utils:' + os.environ.get('PYTHONPATH')
-else :
-    python_path = HOME_DIR+'/src/:'+HOME_DIR+'/utils' 
+python_path = HOME_DIR+'/src/:'+HOME_DIR+'/utils:' + str(os.environ.get('PYTHONPATH') or '')
 
 env_map = {'PATH': os.environ.get('PATH'), 'PYTHONPATH':python_path}
 
