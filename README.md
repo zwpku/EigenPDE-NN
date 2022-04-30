@@ -25,9 +25,14 @@ These two packages are not needed if one only wants to solve a PDE problem by tr
 ```
 
 ## Two examples 
-Two examples are included under [examples](examples).
+Two examples are included under [./examples](examples).
 
-### Example 1: A model example of dimension 50
+### Example 1: A 50-dimensional system 
+
+The potential in this example has 3 metastable regions. The training data can be 
+generated directly by sampling the system's SDE using Euler-Maruyama scheme.
+
+Steps to solve the eigenvalue PDE:
 
 #### 1. Enter the directory corresponding to this example
 
@@ -46,6 +51,10 @@ Two examples are included under [examples](examples).
 
 ### Example 2: Alanine Dipeptide example 
 
+In this example we solve the eigenvalue PDE of the simple molecular system called alanine dipeptide in vacuum.  The training data is generated using the molecular simulation package NAMD. To overcome the sampling difficulties due to the strong metastability of the system, adaptive biasing force (ABF) method is used with the system's two dihedral angles as collective variables.
+
+Steps to solve the eigenvalue PDE:
+
 #### 1. Enter the directory corresponding to this example
 
 ```
@@ -54,7 +63,7 @@ Two examples are included under [examples](examples).
 ```
 
 #### 2. Generate MD data
-  See the steps in [README](examples/test-ex2/MDdata/README.md).
+  Follow the steps in [README](examples/test-ex2/MDdata/README.md).
 
 #### 3. Prepare data for training 
   Run the script [main.py](examples/test-ex2/main.py) by `python ./main.py`, and choose task 0 from input.
