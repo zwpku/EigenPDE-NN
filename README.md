@@ -78,5 +78,5 @@ Steps to solve the eigenvalue PDE:
 	
 ## References
 
-[1] <https://arxiv.org/abs/2110.14523> "Solving eigenvalue PDEs of metastable diffusion processes using artificial neural networks, W. Zhang, T. Li and Ch. Sch&uuml;tte), 2021"
+[1]: <https://arxiv.org/abs/2110.14523> "Solving eigenvalue PDEs of metastable diffusion processes using artificial neural networks, W. Zhang, T. Li and Ch. Sch&uuml;tte), 2021"
 
