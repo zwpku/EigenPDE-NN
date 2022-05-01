@@ -8,13 +8,14 @@ A trajectory data (possibly biased with biasing weights) is needed as training d
 - using a numerical scheme (e.g., Euler-Maruyama scheme), for diffusion processes whose stochastic differential equation (SDE) is relatively simple;  or 
 - using a molecular simulation package (e.g., NAMD), for molecular systems.
 
+#### References:
+<a id="1"> [1] </a> Solving eigenvalue PDEs of metastable diffusion processes using artificial neural networks, W. Zhang, T. Li and Ch. Sch&uuml;tte, 2021, 
+[https://arxiv.org/abs/2110.14523](https://arxiv.org/abs/2110.14523)
+
 ## Note
 This repository contains code used to produce the numerical results in the paper [[1]](#1). See the instructions for [two concrete examples](#two-examples) below.
 
 Based on this repository, a Python package called [ColVars-Finder](https://github.com/zwpku/colvars-finder) with more detailed documentation is developed for finding collective variables of molecular systems.
-
-<a id="1"> [1] </a> Solving eigenvalue PDEs of metastable diffusion processes using artificial neural networks, W. Zhang, T. Li and Ch. Sch&uuml;tte, 2021, 
-[https://arxiv.org/abs/2110.14523](https://arxiv.org/abs/2110.14523)
 
 ## Preparation
 #### 1. Dependances 
