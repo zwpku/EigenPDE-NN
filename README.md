@@ -13,6 +13,9 @@ This repository contains code used to produce the numerical results in the paper
 
 Based on this repository, a Python package called [ColVars-Finder](https://github.com/zwpku/colvars-finder) with more detailed documentation is developed for finding collective variables of molecular systems.
 
+<a id="1"> [1] </a> Solving eigenvalue PDEs of metastable diffusion processes using artificial neural networks, W. Zhang, T. Li and Ch. Sch&uuml;tte, 2021, 
+[https://arxiv.org/abs/2110.14523](https://arxiv.org/abs/2110.14523)
+
 ## Preparation
 #### 1. Dependances 
 
@@ -76,8 +79,3 @@ Steps to solve the eigenvalue PDE:
 
   Run the script [main.py](examples/test-ex2/main.py) by `python ./main.py`, and choose task 3 from input.
 	
-## References
-
-<a id="1"> [1] </a> Solving eigenvalue PDEs of metastable diffusion processes using artificial neural networks, W. Zhang, T. Li and Ch. Sch&uuml;tte, 2021, 
-[https://arxiv.org/abs/2110.14523](https://arxiv.org/abs/2110.14523)
-
