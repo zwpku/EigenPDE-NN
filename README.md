@@ -82,7 +82,7 @@ This example aims at solving the eigenvalue PDE of a simple molecular system in 
 
 2. Generate MD data
 
-	  See the steps in [README](examples/test-ex2/MDdata/README.md).
+	  Enter [./MDdata](examples/test-ex2/MDdata), and see the steps in [README](examples/test-ex2/MDdata/README.md).
 
 3. Prepare data for training 
 
