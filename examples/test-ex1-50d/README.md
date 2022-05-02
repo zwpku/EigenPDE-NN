@@ -27,7 +27,6 @@ The dynamics of this system obeys the SDE <img src="https://render.githubusercon
 To run the first example in paper [[1]](#1) with dimension 100, set `dim=100` in [params.cfg](./params.cfg). 
 To run the first example in paper [[1]](#1) with dimension 2, set `dim=2` and `pot_id=5` in [params.cfg](./params.cfg).
 
-**References**:
 <a id="1"> [1] </a> Solving eigenvalue PDEs of metastable diffusion processes using artificial neural networks, W. Zhang, T. Li and Ch. Sch&uuml;tte, 2021, 
 [https://arxiv.org/abs/2110.14523](https://arxiv.org/abs/2110.14523)
 
