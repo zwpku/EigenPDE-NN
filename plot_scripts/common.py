@@ -1,6 +1,6 @@
 import configparser
 
-working_dir_list = ['./examples/test-ex1-50d/', './examples/test-ex2-test']
+working_dir_list = ['./examples/test-ex1-50d/', './examples/test-ex2']
 task_name_list = ['example 1', 'example 2']
 
 task_id = 1
