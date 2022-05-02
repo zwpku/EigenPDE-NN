@@ -38,11 +38,11 @@ This example aims at solving the eigenvalue PDE of a simple molecular system in 
 
 	Run the script [main.py](./main.py) by `python ./main.py`, and choose task 2 from input.
 
-	This will generate plots of histogram and counts of weights along trajectory data.
+	This will generate plots for histogram and count of weights along trajectory data.
 
 2. Training results
 
-	Use scripts under [plot_scripts](../../plot_scripts/) **as templates** to generate plots. Before use, set the value of `task_id` in [common.py](../../plot_scripts/common.py).  The plots will be created under `./fig/`.
+	Use the scripts below under [plot_scripts](../../plot_scripts/) as **templates** to generate plots. Before use, set the value of `task_id` in [common.py](../../plot_scripts/common.py).  The plots will be created under `./fig/`.
 
   - [plot_log_info.py](../../plot_scripts/plot_log_info.py): plot losses.
 
