@@ -52,11 +52,17 @@ The dynamics of this system obeys the SDE <img src="https://render.githubusercon
 
 2. Generate trajectory data
 
-  Run the script [main.py](examples/test-ex1-50d/main.py) by `python ./main.py`, and choose task 0 from input.
+	  Run the script [main.py](examples/test-ex1-50d/main.py) by `python ./main.py`, and choose task 0 from input.
 
 3. Train neural networks
 
-  Run the script [main.py](examples/test-ex1-50d/main.py) by `python ./main.py`, and choose task 3 from input.
+	  Run the script [main.py](examples/test-ex1-50d/main.py) by `python ./main.py`, and choose task 3 from input.
+
+#### Note:
+To run the first example in paper [[1]](#1) with dimension $d=100$, set the parameters in [main.py](examples/test-ex1-50d/params.cfg) to `dim=100`.
+
+To run the first example in paper [[1]](#1) with dimension $d=2$, set the parameters in [main.py](examples/test-ex1-50d/params.cfg)
+to `dim=2` and `pot_id=5`. 
 
 ### Example 2: Alanine Dipeptide example 
 
