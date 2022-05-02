@@ -13,9 +13,6 @@ A trajectory data (possibly biased with biasing weights) is needed as training d
 
 The code in this repository was used to produce the numerical results in the paper [[1]](#1). See instructions for the [two concrete examples](#two-examples) below. Based on this repository, a Python package called [ColVars-Finder](https://github.com/zwpku/colvars-finder) with more detailed documentation was developed for finding collective variables of molecular systems.
 
-#### References:
-<a id="1"> [1] </a> Solving eigenvalue PDEs of metastable diffusion processes using artificial neural networks, W. Zhang, T. Li and Ch. Sch&uuml;tte, 2021, 
-[https://arxiv.org/abs/2110.14523](https://arxiv.org/abs/2110.14523)
 
 ## Preparation
 #### 1. Dependances 
@@ -39,4 +36,8 @@ These two packages are *not* needed if one just wants to solve a PDE problem by 
 The directory [./examples](./examples) contains necessary files of two numerical examples studied in the paper [[1]](#1).
 The first example is A 50-dimensional system, while the second example is the simple MD system *alanine dipeptide*.
 Please refer to the README files in [./examples/test-ex1-50d](./examples/test-ex1-50d) and [./examples/test-ex2](./examples/test-ex2) for detailed instructions to run the simulations.
+
+#### References:
+<a id="1"> [1] </a> Solving eigenvalue PDEs of metastable diffusion processes using artificial neural networks, W. Zhang, T. Li and Ch. Sch&uuml;tte, 2021, 
+[https://arxiv.org/abs/2110.14523](https://arxiv.org/abs/2110.14523)
 
