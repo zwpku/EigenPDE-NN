@@ -20,11 +20,11 @@ This directory contains files for generating training data for the alanine dipep
 
 4. ABF simulation: `namd2 ./colvars.conf`
 
-	This step performs a ABF simulation, using the collective variables defined in [colvars.in](./abf-varing-20ns/MDdata/colvars.in). The information on the estimated biasing forces will be stored in the files *colvarso.count* and *colvarso.grad*.
+	This step performs a ABF simulation of 20ns, using the collective variables defined in [colvars.in](./abf-varing-20ns/MDdata/colvars.in). The information on the estimated biasing forces will be stored in the files *colvarso.count* and *colvarso.grad*.
 
 ### Second, run a 20ns simulation under fixed biasing force
 
-1. Change to [MDdata](.), and Prepare the rescaled biasing force
+1. Change to directory [MDdata](.), and prepare the rescaled biasing force
 
    ```
    python ./rescale_abf_force.py
@@ -45,5 +45,5 @@ This directory contains files for generating training data for the alanine dipep
    namd2 ./colvars.conf
    ```
 
-   This step performs a simulation of 100ns, using the rescaled biasing force prepared above.
+   This step performs a simulation of 100ns, using the rescaled biasing force prepared in the first step.
 
