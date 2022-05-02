@@ -8,36 +8,19 @@ This directory contains files for generating training data for the alanine dipep
 
 ### First, run ABF simulation of 20ns
 
-1. Enter the directory 
+1. Enter the directory:  `cd abf-varying-20ns/`
 
-```
-   cd abf-varying-20ns/
-```
+2. Energy minimization:  `namd2 ./minvac.conf`
 
-2. Energy minimization 
+	This step generates files *minvaco.vel* and *minvaco.coor*, which will provide initial veolcities and coordinates for the next step.
 
-```
-   namd2 ./minvac.conf
-```
+3. Equilibration: `namd2 ./equilvac.conf`
 
-   This step generates files *minvaco.vel* and *minvaco.coor*, which will provide initial veolcities and coordinates for the next step.
+	The final coordinates and velocities are stored in the files *equilvaco.coor* and *equilvaco.vel*, respectively.
 
-3. Equilibration 
+4. ABF simulation: `namd2 ./colvars.conf`
 
-```
-namd2 ./equilvac.conf
-```
-
-   The final coordinates and velocities are stored in the files *equilvaco.coor* and *equilvaco.vel*, respectively.
-
-4. ABF simulation 
-
-```
-   namd2 ./colvars.conf
-```
-
-   This step performs a ABF simulation, using the collective variables defined in [colvars.in](./abf-varing-20ns/colvars.in).
-   The information on the estimated biasing forces will be stored in the files *colvarso.count* and *colvarso.grad*.
+	This step performs a ABF simulation, using the collective variables defined in [colvars.in](./abf-varing-20ns/colvars.in). The information on the estimated biasing forces will be stored in the files *colvarso.count* and *colvarso.grad*.
 
 ### Second, run a 20ns simulation under fixed biasing force
 
