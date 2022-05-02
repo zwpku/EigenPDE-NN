@@ -30,6 +30,9 @@ if dim >= 2 :
     xmin, xmax, nx = [ float (x) for x in data_file.readline().split() ]
     ymin, ymax, ny = [ float (x) for x in data_file.readline().split() ]
 
+    nx = int(nx)
+    ny = int(ny)
+
     Z = np.loadtxt(data_file, skiprows=2)
 
     tot_min = Z.min()
