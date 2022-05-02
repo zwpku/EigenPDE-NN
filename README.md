@@ -10,9 +10,10 @@ A trajectory data (possibly biased with biasing weights) is needed as training d
 
 
 #### Note:
-The code in this repository was used to produce the numerical results in the paper [[1]](#1). See instructions for the [two concrete examples](#two-examples) below.
 
-Based on this repository, a Python package called [ColVars-Finder](https://github.com/zwpku/colvars-finder) with more detailed documentation was developed for finding collective variables of molecular systems.
+	The code in this repository was used to produce the numerical results in the paper [[1]](#1). See instructions for the [two concrete examples](#two-examples) below.
+
+	Based on this repository, a Python package called [ColVars-Finder](https://github.com/zwpku/colvars-finder) with more detailed documentation was developed for finding collective variables of molecular systems.
 
 #### References:
 <a id="1"> [1] </a> Solving eigenvalue PDEs of metastable diffusion processes using artificial neural networks, W. Zhang, T. Li and Ch. Sch&uuml;tte, 2021, 
