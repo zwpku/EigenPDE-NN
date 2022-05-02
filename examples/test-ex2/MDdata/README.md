@@ -8,12 +8,13 @@ This directory contains files for generating training data for the alanine dipep
 
 ### First, run ABF simulation of 20ns
 
-1. enter the directory 
+1. Enter the directory 
 
 ```
    cd abf-varying-20ns/
 ```
-2. energy minimization 
+
+2. Energy minimization 
 
 ```
    namd2 ./minvac.conf
@@ -21,7 +22,7 @@ This directory contains files for generating training data for the alanine dipep
 
 	This step generates files *minvaco.vel* and *minvaco.coor*, which will provide initial veolcities and coordinates for the next step.
 
-3. equilibration 
+3. Equilibration 
 
 ```
 namd2 ./equilvac.conf
