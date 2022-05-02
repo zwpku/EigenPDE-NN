@@ -38,16 +38,16 @@ To run the first example in paper [[1]](#1) with dimension 2, set `dim=2` and `p
 [https://arxiv.org/abs/2110.14523](https://arxiv.org/abs/2110.14523)
 
 #### Generate plots:
-	[plot_scripts](../../plot_scripts/) contains scripts for generating plots. The plots will be created under `./fig/`.
+  [plot_scripts](../../plot_scripts/) contains scripts for generating plots. The plots will be created under `./fig/`.
 
 1. Data
 
-  - 2D histogram of the first two coordinates of trajectory data: [hist_of_data_in_1d_or_2d.py](../../plot_scripts/hist_of_data_in_1d_or_2d.py).
-  - Potential function of the first two coordinates: [plot_potential_1d_or_2d.py](../../plot_scripts/plot_potential_1d_or_2d.py).
+  - [hist_of_data_in_1d_or_2d.py](../../plot_scripts/hist_of_data_in_1d_or_2d.py): 2D histogram of the first two coordinates of trajectory data.
+  - [plot_potential_1d_or_2d.py](../../plot_scripts/plot_potential_1d_or_2d.py): plot potential function of the first two coordinates.
 
 2. Training results
 
-  - Losses: [plot_log_info.py](../../plot_scripts/plot_log_info.py).
-  - Eigenfunctions on the space of the first two coordinates: [plot_2d_evs_nn_and_FVD.py](../../plot_scripts/plot_2d_evs_nn_and_FVD.py).
+  - [plot_log_info.py](../../plot_scripts/plot_log_info.py): plot losses.
+  - [plot_2d_evs_nn_and_FVD.py](../../plot_scripts/plot_2d_evs_nn_and_FVD.py): display eigenfunctions on the space of the first two coordinates.
 
 
