@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 from pylab import *
 from numpy import *
@@ -13,7 +13,7 @@ idx_vec = range(1, num_k+1)
 fig, ax = plt.subplots(1, num_k, figsize=(14, 5.5))
 #fig.suptitle('Eigenfunctions by NN, %s' % task_name)
 
-angle_filename = '../%s/data/angle_along_traj_validation.txt' % working_dir_name
+angle_filename = '../%s/data/angle_along_traj.txt' % working_dir_name
 angle_data = np.loadtxt(angle_filename, skiprows=1)
 
 nbin = 100

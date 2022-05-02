@@ -1,9 +1,9 @@
 import configparser
 
-working_dir_list = ['./examples/test-ex1/', './examples/test-ex2']
+working_dir_list = ['./examples/test-ex1-50d/', './examples/test-ex2-test']
 task_name_list = ['example 1', 'example 2']
 
-task_id = 0
+task_id = 1
 conjugated_eigvec_flag = 0
 
 with_FVD_solution = False

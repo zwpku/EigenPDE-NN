@@ -27,3 +27,25 @@ This example aims at solving the eigenvalue PDE of a simple molecular system in 
 
 	  This will learn the first eigenvalue/eigenfunction.
 
+5. Evaluate the trained neural networks on training (test) data
+
+	  Run the script [main.py](./main.py) by `python ./main.py`, and choose task 5 from input.
+
+	  Note: This step evaluates each trained eigenfunction on training (test) data. This step generates text files that are needed to plot eigenfunctions on scattered data in the space of two dihedral angles.
+
+#### Generate plots:
+1. Data
+
+	Run the script [main.py](./main.py) by `python ./main.py`, and choose task 2 from input.
+
+	This will generate plots of histogram and counts of weights along trajectory data.
+
+2. Training results
+
+	Use scripts under [plot_scripts](../../plot_scripts/) **as templates** to generate plots. Before use, set the value of `task_id` in [common.py](../../plot_scripts/common.py).  The plots will be created under `./fig/`.
+
+  - [plot_log_info.py](../../plot_scripts/plot_log_info.py): plot losses.
+
+  - [scatter_eigenvecs_angle_space.py](../../plot_scripts/scatter_eigenvecs_angle_space.py): display eigenfunctions on training (test) data in the space of two dihedral angles.
+
+

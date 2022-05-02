@@ -38,7 +38,7 @@ To run the first example in paper [[1]](#1) with dimension 2, set `dim=2` and `p
 [https://arxiv.org/abs/2110.14523](https://arxiv.org/abs/2110.14523)
 
 #### Generate plots:
-  Use scripts under [plot_scripts](../../plot_scripts/) as templates to generate plots. The plots will be created under `./fig/`.
+  Use scripts under [plot_scripts](../../plot_scripts/) **as templates** to generate plots. Before use, set the value of `task_id` in [common.py](../../plot_scripts/common.py).  The plots will be created under `./fig/`.
 
 1. Data
 
