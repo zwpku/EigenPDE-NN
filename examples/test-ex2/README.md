@@ -25,3 +25,5 @@ This example aims at solving the eigenvalue PDE of a simple molecular system in 
 
 	  Run the script [main.py](./main.py) by `python ./main.py`, and choose task 3 from input.
 
+	  This will learn the first eigenvalue/eigenfunction.
+

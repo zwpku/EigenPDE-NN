@@ -46,4 +46,5 @@ This directory contains files for generating training data for the alanine dipep
    ```
 
    This step performs a simulation of 100ns, using the rescaled biasing force prepared in the first step.
+   The trajectory data is stored in the DCD file `colvars.dcd`.
 

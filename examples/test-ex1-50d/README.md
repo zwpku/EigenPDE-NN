@@ -21,7 +21,7 @@ The dynamics of this system obeys the SDE <img src="https://render.githubusercon
 
 	  Run the script [main.py](./main.py) by `python ./main.py`, and choose task 3 from input.
 
-	  Note: The training is divided into several stages, where different learning rates, batch-sizes can be specified. The trained model after the first training stage will be saved at `./data/eigen_vector_state1.pt`, and so on. The trained model after the entire training process will be saved at `./data/eigen_vector.pt`.
+	  Note: This test will learn the first 3 eigenvalues/eigenfunctions. The training is divided into several stages, where different learning rates, batch-sizes can be specified. The trained model after the first training stage will be saved at `./data/eigen_vector_state1.pt`, and so on. The trained model after the entire training process will be saved at `./data/eigen_vector.pt`.
 
 #### Note:
 To run the first example in paper [[1]](#1) with dimension 100, set `dim=100` in [params.cfg](./params.cfg). 
