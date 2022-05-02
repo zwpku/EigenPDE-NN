@@ -222,8 +222,8 @@ class md_data_loader() :
 
     def load_md_traj(self):
         # Names of files containing trajectory data
-        psf_filename = '%s/%s.psf' % (self.md_data_path, self.psf_name)
-        pdb_filename = '%s/%s.pdb' % (self.md_data_path, self.psf_name)
+        psf_filename = '%s.psf' % (self.psf_name)
+        pdb_filename = '%s.pdb' % (self.psf_name)
         traj_filename = '%s/%s.dcd' % (self.md_data_path, self.md_data_filename_prefix)
 
 

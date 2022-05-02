@@ -53,15 +53,19 @@ The dynamics of this system obeys the SDE <img src="https://render.githubusercon
 
 2. Generate trajectory data
 
-	  Run the script [main.py](examples/test-ex1-50d/main.py) by `python ./main.py`, and choose task 0 from input.
+	  Run the script [main.py](examples/test-ex1-50d/main.py) by `python ./main.py`, and choose task 0 from input. 
+
+	  This step may take 30 minutes. The trajectory data (including weights) will be saved under `./data/`, whose filename is specified by the value of `data_filename_prefix` in [params.cfg](examples/test-ex1-50d/params.cfg).
 
 3. Train neural networks
 
 	  Run the script [main.py](examples/test-ex1-50d/main.py) by `python ./main.py`, and choose task 3 from input.
 
+	  The training is divided into several stages, where different learning rates, batch-size can be specified. The trained model after the first training stage will be saved at `./data/eigen_vector_state1.pt`, and so on. The trained model after the entire training process will be saved at `./data/eigen_vector.pt`.
+
 #### Note:
-To run the first example in paper [[1]](#1) with dimension d=100, set `dim=100` in [params.cfg](examples/test-ex1-50d/params.cfg). 
-To run the first example in paper [[1]](#1) with dimension d=2, set `dim=2` and `pot_id=5` in [params.cfg](examples/test-ex1-50d/params.cfg).
+To run the first example in paper [[1]](#1) with dimension 100, set `dim=100` in [params.cfg](examples/test-ex1-50d/params.cfg). 
+To run the first example in paper [[1]](#1) with dimension 2, set `dim=2` and `pot_id=5` in [params.cfg](examples/test-ex1-50d/params.cfg).
 
 ### Example 2: Alanine Dipeptide example 
 
@@ -84,7 +88,8 @@ This example aims at solving the eigenvalue PDE of a simple molecular system in 
 
 	  Run the script [main.py](examples/test-ex2/main.py) by `python ./main.py`, and choose task 0 from input.
 
+	  This step generates several output files under `./data` by reading the DCD trajectory data generated in the previous step, as well as the PDB and PSB files. One of the files, whose name is specified by the value of `data_filename_prefix` in [params.cfg](examples/test-ex2/params.cfg), contains states and weights of the selected atoms that are used in training.
+
 4. Train neural networks
 
 	  Run the script [main.py](examples/test-ex2/main.py) by `python ./main.py`, and choose task 3 from input.
-	
