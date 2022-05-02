@@ -20,7 +20,7 @@ This directory contains files for generating training data for the alanine dipep
    namd2 ./minvac.conf
 ```
 
-	This step generates files *minvaco.vel* and *minvaco.coor*, which will provide initial veolcities and coordinates for the next step.
+   This step generates files *minvaco.vel* and *minvaco.coor*, which will provide initial veolcities and coordinates for the next step.
 
 3. Equilibration 
 
@@ -28,7 +28,7 @@ This directory contains files for generating training data for the alanine dipep
 namd2 ./equilvac.conf
 ```
 
-	The final coordinates and velocities are stored in the files *equilvaco.coor* and *equilvaco.vel*, respectively.
+   The final coordinates and velocities are stored in the files *equilvaco.coor* and *equilvaco.vel*, respectively.
 
 4. ABF simulation 
 
@@ -36,25 +36,24 @@ namd2 ./equilvac.conf
    namd2 ./colvars.conf
 ```
 
-	This step performs a ABF simulation, using the collective variables defined in [colvars.in](./abf-varing-20ns/colvars.in).
-
-	The information on the estimated biasing forces will be stored in the files *colvarso.count* and *colvarso.grad*.
+   This step performs a ABF simulation, using the collective variables defined in [colvars.in](./abf-varing-20ns/colvars.in).
+   The information on the estimated biasing forces will be stored in the files *colvarso.count* and *colvarso.grad*.
 
 ### Second, run a 20ns simulation under fixed biasing force
 
-1. prepare the rescaled biasing force
+1. Prepare the rescaled biasing force
 
 ```
    python ./rescale_abf_force.py
 ```
 
-2. copy the initial states generated in a previous step.
+2. Copy the initial states generated in a previous step.
 
 ```
    cp ./abf-varying-20ns/equilvaco.* ./abf-fixed-100ns-0.7/
 ```
 
-3. start the simulation 
+3. Start the simulation 
 
 ```
    cd ./abf-fixed-100ns-0.7
